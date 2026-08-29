@@ -1,0 +1,966 @@
+{
+  "id_consulta": "Q-20260816-204850-OF-2027-8739",
+  "fecha_hora": "2026-08-16T20:48:50.599605+00:00",
+  "pedido_consultado": "SYN-0052.md (oferta OF-2027-8739) -- caso con distractores compitiendo -- familia de 3 (SYN-0052/53/54) frente a 5 distractores (SYN-0088..92) que sobreviven a la Capa 1 sin ser hermanos",
+  "resultados": [
+    {
+      "posicion": 1,
+      "id_proyecto": "SYN-0054.md",
+      "puntuacion": 1.0,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9410237073898315,
+          "normalizado": 0.9535964830723296
+        },
+        "parametrico": {
+          "bruto": 0.5956065212811739,
+          "normalizado": 1.0
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 3.45
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 141.2
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 2,
+      "id_proyecto": "SYN-0092.md",
+      "puntuacion": 0.6458497315185373,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9441770315170288,
+          "normalizado": 1.0
+        },
+        "parametrico": {
+          "bruto": 0.4814785294121858,
+          "normalizado": 0.6458497315185373
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 2.0
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 108.8
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 3,
+      "id_proyecto": "SYN-0090.md",
+      "puntuacion": 0.4482005762511514,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9176836013793945,
+          "normalizado": 0.6101294112900255
+        },
+        "parametrico": {
+          "bruto": 0.417784376977993,
+          "normalizado": 0.4482005762511514
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 2.0005884083553984
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 108.8
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 4,
+      "id_proyecto": "SYN-0053.md",
+      "puntuacion": 0.2431384678765104,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9092442393302917,
+          "normalizado": 0.48593790293012984
+        },
+        "parametrico": {
+          "bruto": 0.3517013361897757,
+          "normalizado": 0.2431384678765104
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 3.49
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 131.1
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 5,
+      "id_proyecto": "SYN-0091.md",
+      "puntuacion": 0.20659708312257619,
+      "senales": {
+        "semantico": {
+          "bruto": 0.8762226104736328,
+          "normalizado": 0.0
+        },
+        "parametrico": {
+          "bruto": 0.33992555841058464,
+          "normalizado": 0.20659708312257619
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 5.287
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 108.8
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 6,
+      "id_proyecto": "SYN-0089.md",
+      "puntuacion": 0.08543040633941162,
+      "senales": {
+        "semantico": {
+          "bruto": 0.8960174322128296,
+          "normalizado": 0.29129556893076486
+        },
+        "parametrico": {
+          "bruto": 0.3008785472026145,
+          "normalizado": 0.08543040633941162
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 5.29
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 108.8
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 7,
+      "id_proyecto": "SYN-0088.md",
+      "puntuacion": 0.0,
+      "senales": {
+        "semantico": {
+          "bruto": 0.8917564153671265,
+          "normalizado": 0.22859152730583482
+        },
+        "parametrico": {
+          "bruto": 0.2733478587130219,
+          "normalizado": 0.0
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerocondensador_vapor",
+          "valor_candidata": "aerocondensador_vapor"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "vapor_de_agua",
+          "valor_candidata": "vapor_de_agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 3.59,
+          "valor_candidata": 5.29
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 136.7,
+          "valor_candidata": 108.8
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA1_aluminio",
+          "valor_candidata": "GA1_aluminio"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    }
+  ],
+  "descartados": [
+    {
+      "id_proyecto": "SYN-0001.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0002.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0003.md",
+      "parametro": "temperatura_diseno",
+      "valor_pedido": 136.7,
+      "valor_candidata": 356.7
+    },
+    {
+      "id_proyecto": "SYN-0004.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0005.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0006.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0007.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0008.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0009.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0010.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0011.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0012.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0013.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 3.59,
+      "valor_candidata": 13.925664411101303
+    },
+    {
+      "id_proyecto": "SYN-0014.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0015.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0016.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0017.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0018.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0019.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0020.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0021.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0022.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0035.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0023.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0024.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0025.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0026.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0027.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0028.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0029.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0030.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 3.59,
+      "valor_candidata": 12.23
+    },
+    {
+      "id_proyecto": "SYN-0031.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 3.59,
+      "valor_candidata": 15.23
+    },
+    {
+      "id_proyecto": "SYN-0032.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0036.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0037.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0038.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0039.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0040.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0033.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0034.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0041.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0042.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0043.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0044.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0045.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0046.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0047.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0048.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0049.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0050.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0051.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0055.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0056.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0057.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0058.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0059.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0060.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0061.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0062.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0063.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0064.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0065.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0067.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0069.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0070.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0071.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0072.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0073.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0074.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0075.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0077.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0078.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0066.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0068.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0076.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0079.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0080.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0081.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0082.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "aerorrefrigerante_agua"
+    },
+    {
+      "id_proyecto": "SYN-0083.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0084.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0085.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0086.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0087.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0093.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0094.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0095.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0096.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0097.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerocondensador_vapor",
+      "valor_candidata": "haz_tubular_sustitucion"
+    }
+  ],
+  "esquema_version": "1.0",
+  "peso_semantico": 0.0,
+  "aviso_lista_vacia": null
+}

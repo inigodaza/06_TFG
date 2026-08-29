@@ -1,0 +1,1128 @@
+{
+  "id_consulta": "Q-20260816-204846-OF-2026-2301",
+  "fecha_hora": "2026-08-16T20:48:46.061278+00:00",
+  "pedido_consultado": "SYN-0041.md (oferta OF-2026-2301) -- caso con fallo conocido -- familia de 6 (SYN-0041..46); SYN-0045 nunca entra en el top-5 por su tamaño físico atípico, aunque sus parámetros duros coinciden",
+  "resultados": [
+    {
+      "posicion": 1,
+      "id_proyecto": "SYN-0042.md",
+      "puntuacion": 1.0,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9385618567466736,
+          "normalizado": 0.7377966156608113
+        },
+        "parametrico": {
+          "bruto": 0.5327725246231235,
+          "normalizado": 1.0
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 2.84
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 264.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 2,
+      "id_proyecto": "SYN-0044.md",
+      "puntuacion": 0.8878707864588327,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9192807674407959,
+          "normalizado": 0.42954788445449016
+        },
+        "parametrico": {
+          "bruto": 0.49360967108636034,
+          "normalizado": 0.8878707864588327
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 2.8047464940668823
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 279.0
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 3,
+      "id_proyecto": "SYN-0046.md",
+      "puntuacion": 0.8375713792262721,
+      "senales": {
+        "semantico": {
+          "bruto": 0.8924123644828796,
+          "normalizado": 0.0
+        },
+        "parametrico": {
+          "bruto": 0.476041828985055,
+          "normalizado": 0.8375713792262721
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 3.06
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 265.1
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 4,
+      "id_proyecto": "SYN-0079.md",
+      "puntuacion": 0.6670200924733644,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9101310968399048,
+          "normalizado": 0.28327117213094444
+        },
+        "parametrico": {
+          "bruto": 0.41647416724310954,
+          "normalizado": 0.6670200924733644
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 4.6
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 322.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 5,
+      "id_proyecto": "SYN-0043.md",
+      "puntuacion": 0.664978430238427,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9549627900123596,
+          "normalizado": 1.0
+        },
+        "parametrico": {
+          "bruto": 0.4157610852856673,
+          "normalizado": 0.664978430238427
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 2.81
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 284.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 6,
+      "id_proyecto": "SYN-0078.md",
+      "puntuacion": 0.5800478310072309,
+      "senales": {
+        "semantico": {
+          "bruto": 0.918870747089386,
+          "normalizado": 0.4229928474912857
+        },
+        "parametrico": {
+          "bruto": 0.386097766392775,
+          "normalizado": 0.5800478310072309
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 2.0
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 322.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 7,
+      "id_proyecto": "SYN-0045.md",
+      "puntuacion": 0.3767772756699707,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9297509789466858,
+          "normalizado": 0.5969362182229837
+        },
+        "parametrico": {
+          "bruto": 0.3151023965368458,
+          "normalizado": 0.3767772756699707
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 2.87
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 273.5
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 8,
+      "id_proyecto": "SYN-0081.md",
+      "puntuacion": 0.3563923821705883,
+      "senales": {
+        "semantico": {
+          "bruto": 0.950251579284668,
+          "normalizado": 0.9246813960446798
+        },
+        "parametrico": {
+          "bruto": 0.307982658751601,
+          "normalizado": 0.3563923821705883
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 4.6
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 322.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 9,
+      "id_proyecto": "SYN-0082.md",
+      "puntuacion": 0.23587397909869634,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9449453353881836,
+          "normalizado": 0.8398499364412029
+        },
+        "parametrico": {
+          "bruto": 0.26588975165869394,
+          "normalizado": 0.23587397909869634
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 2.0
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 322.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    },
+    {
+      "posicion": 10,
+      "id_proyecto": "SYN-0080.md",
+      "puntuacion": 0.0,
+      "senales": {
+        "semantico": {
+          "bruto": 0.9308606386184692,
+          "normalizado": 0.6146764599941682
+        },
+        "parametrico": {
+          "bruto": 0.18350713427607657,
+          "normalizado": 0.0
+        }
+      },
+      "parametros_justificativos": [
+        {
+          "parametro": "tipo_equipo",
+          "valor_pedido": "aerorrefrigerante_agua",
+          "valor_candidata": "aerorrefrigerante_agua"
+        },
+        {
+          "parametro": "fluido_lado_tubo",
+          "valor_pedido": "agua",
+          "valor_candidata": "agua"
+        },
+        {
+          "parametro": "fluido_lado_exterior",
+          "valor_pedido": "aire",
+          "valor_candidata": "aire"
+        },
+        {
+          "parametro": "presion_diseno",
+          "valor_pedido": 2.9,
+          "valor_candidata": 4.6
+        },
+        {
+          "parametro": "temperatura_diseno",
+          "valor_pedido": 266.6,
+          "valor_candidata": 322.9
+        },
+        {
+          "parametro": "material_tubos",
+          "valor_pedido": "G4_inox_austenitico_con_Mo",
+          "valor_candidata": "G4_inox_austenitico_con_Mo"
+        },
+        {
+          "parametro": "material_aletas",
+          "valor_pedido": "GA2_acero_galvanizado",
+          "valor_candidata": "GA2_acero_galvanizado"
+        },
+        {
+          "parametro": "codigo_diseno",
+          "valor_pedido": "AD_Merkblaetter_AD2000",
+          "valor_candidata": "AD_Merkblaetter_AD2000"
+        }
+      ],
+      "extra_no_pactado": {
+        "parametros_no_verificados": []
+      }
+    }
+  ],
+  "descartados": [
+    {
+      "id_proyecto": "SYN-0001.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0002.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0003.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0004.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0005.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0006.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0007.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0008.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0009.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 2.9,
+      "valor_candidata": 15.87
+    },
+    {
+      "id_proyecto": "SYN-0010.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 2.9,
+      "valor_candidata": 7.76
+    },
+    {
+      "id_proyecto": "SYN-0011.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0012.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 2.9,
+      "valor_candidata": 17.29
+    },
+    {
+      "id_proyecto": "SYN-0013.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0014.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0015.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0016.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0017.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 2.9,
+      "valor_candidata": 11.68
+    },
+    {
+      "id_proyecto": "SYN-0018.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0019.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0020.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0021.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0022.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0035.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0023.md",
+      "parametro": "material_aletas",
+      "valor_pedido": "GA2_acero_galvanizado",
+      "valor_candidata": "GA1_aluminio"
+    },
+    {
+      "id_proyecto": "SYN-0024.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0025.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0026.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0027.md",
+      "parametro": "presion_diseno",
+      "valor_pedido": 2.9,
+      "valor_candidata": 9.7
+    },
+    {
+      "id_proyecto": "SYN-0028.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0029.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0030.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0031.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0032.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0036.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0037.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0038.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0039.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0040.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0033.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0034.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0047.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0048.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0049.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0050.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0051.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0052.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0053.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0054.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0055.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0056.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0057.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0058.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0059.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0060.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0061.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0062.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0063.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0064.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0065.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0067.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0069.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0070.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0071.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0072.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0073.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0074.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0075.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0077.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0066.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "economizador_gases"
+    },
+    {
+      "id_proyecto": "SYN-0068.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0076.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0083.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0084.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0085.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0086.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0087.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "bateria_calentamiento_aire"
+    },
+    {
+      "id_proyecto": "SYN-0088.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0089.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0090.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0091.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0092.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "aerocondensador_vapor"
+    },
+    {
+      "id_proyecto": "SYN-0093.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0094.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0095.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0096.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    },
+    {
+      "id_proyecto": "SYN-0097.md",
+      "parametro": "tipo_equipo",
+      "valor_pedido": "aerorrefrigerante_agua",
+      "valor_candidata": "haz_tubular_sustitucion"
+    }
+  ],
+  "esquema_version": "1.0",
+  "peso_semantico": 0.0,
+  "aviso_lista_vacia": null
+}
