@@ -68,8 +68,8 @@ from nucleo import bateria as B
 from nucleo import contraste as C
 from nucleo import jueces as J
 from nucleo import llm
-from nucleo.texto import (anios_de, buscar_fecha, duracion_dias, fecha_de,
-                          fecha_unica, numero_en_letra, plano,
+from nucleo.texto import (CORTE_CLAUSULA, anios_de, buscar_fecha, duracion_dias,
+                          fecha_de, fecha_unica, numero_en_letra, plano,
                           restar_duracion, sumar_anios)
 
 # ===========================================================================
@@ -667,7 +667,16 @@ P_FIN = (r"(?:finaliz(?:a|ar[áa]|ando|aci[óo]n)|termin(?:a|ar[áa]|ando|aci[ó
          # «con fecha 5 de febrero» es una obra.
          r"(?:\s*,?\s*en\s+consecuencia\s*,?)?\s*(?:el|hasta)\s+(?:d[íi]a\s+)?")
 
-P_RENUNCIA = (r"renuncia\s+(expresa\s+)?a\s+la\s+t[áa]cita\s+reconducci[óo]n|"
+P_RENUNCIA = (r"renuncia(?:n|r[áa]n?)?\s+(?:expresa(?:mente)?\s+)?(?:a|de)\s+"
+              r"la\s+t[áa]cita\s+reconducci[óo]n|"
+              # ZURITA lo dice así, y en negativo: «Las partes acuerdan
+              # expresamente que el presente contrato NO SE PRORROGARÁ
+              # automáticamente». Sin esta forma, el evaluador leía la cláusula
+              # que renuncia a la prórroga y la citaba como prueba de que hay
+              # prórroga tácita — la cita era literal y la conclusión, la
+              # contraria de la que sostiene el documento.
+              r"no\s+se\s+prorrogar[áa]\s+(?:autom[áa]ticamente|t[áa]citamente)|"
+              r"no\s+(?:habr[áa]|existir[áa])\s+pr[óo]rroga|"
               r"sin\s+pr[óo]rroga\s+t[áa]cita|no\s+pr[óo]rroga\s+autom[áa]tica|"
               r"sin\s+pr[óo]rroga\s+autom[áa]tica|NO\s+pr[óo]rroga")
 P_CONSUMADO = (r"agotad[oa]\s+el\s+objeto|sin\s+obligaciones\s+(econ[óo]micas\s+)?"
@@ -704,8 +713,24 @@ P_PREAVISO = r"preaviso[^.]{0,60}?(\d{1,3})\s*d[íi]as|(\d{1,3})\s*d[íi]as\s+de
 # El discriminante es el verbo, no la palabra «prórroga»: «se prorrogará
 # automáticamente» frente a «las partes podrán convenir… mediante acuerdo
 # expreso». Los dos textos contienen «prórroga».
-P_PRORROGA_TACITA = (r"se\s+prorrogar[áa]\s+(autom[áa]ticamente|t[áa]citamente)|"
+# Ojo con el «no» delante: `(?<!no\s)` impide que «no se prorrogará
+# automáticamente» cuente como prórroga tácita. La renuncia se lee aparte y manda
+# sobre todo, pero un patrón que casa con la frase negada es una trampa que
+# tarde o temprano se dispara en un documento donde la renuncia esté escrita de
+# otra forma.
+P_PRORROGA_TACITA = (r"(?<!no\s)se\s+prorrogar[áa]\s+(autom[áa]ticamente|"
+                     r"t[áa]citamente)|"
                      r"pr[óo]rroga\s+(autom[áa]tica|t[áa]cita)|"
+                     # «podrá ser prorrogado por la tácita» (BULL MCCABES, 1997)
+                     # y «podrá prorrogarse de año en año, sucesivamente»
+                     # (Baltasar Gracián): las dos fórmulas clásicas del
+                     # artículo 1566 del Código Civil, que ningún patrón
+                     # reconocía por no llevar la palabra «tácita» pegada a
+                     # «prórroga».
+                     r"prorrogad[oa]\s+por\s+la\s+t[áa]cita|"
+                     r"prorrogar(?:se|[áa])\s+de\s+a[ñn]o\s+en\s+a[ñn]o|"
+                     r"prorrog[áa]ndose\s+por\s+(?:plazos?|per[íi]odos?)\s+"
+                     r"(?:anuales|sucesivos)|"
                      r"t[áa]cita\s+reconducci[óo]n|"
                      r"se\s+entender[áa]\s+prorrogado")
 P_PRORROGA_EXPRESA = (r"podr[áa]n\s+convenir[^.]{0,120}?pr[óo]rroga|"
@@ -721,8 +746,21 @@ PRORROGAS = {"tacita": "Tácita (se renueva sola)",
 # La antelación con la que hay que moverse antes del vencimiento. Puede venir en
 # días, meses o años, y en cifra o en letra. `duracion_dias` lo reduce a las tres
 # cosas que hacen falta: cuánto, de qué, y su equivalencia en días.
-P_ANTELACION = (r"(?:con\s+una?\s+)?antelaci[óo]n\s+de\s+([^,.;]{1,40})|"
-                r"preaviso\s+de\s+(?:al\s+menos\s+)?([^,.;]{1,40})")
+#
+# Faltaba la forma más común de todas. El castellano pone la cantidad **delante**
+# —«con DOS MESES de antelación», «remitido con 3 meses de antelación»— y este
+# patrón sólo sabía leerla detrás. Se perdía el preaviso de ZURITA y el de
+# Baltasar Gracián: dos contratos que lo dicen con todas las letras y salían con
+# el campo vacío, como si no lo pactaran.
+_CANTIDAD = r"(?:\d{1,3}|[a-záéíóúñ]+(?:\s+y\s+[a-záéíóúñ]+)?)"
+_UNIDAD = r"(?:d[íi]as?|semanas?|meses|mes|años?|anos?)"
+P_ANTELACION = (
+    # cantidad delante: «con DOS MESES de antelación», «con un año de antelación»
+    rf"con\s+(?:un[ao]?\s+)?({_CANTIDAD}\s+{_UNIDAD})\s+(?:de\s+)?antelaci[óo]n|"
+    # cantidad detrás: «antelación de 3 meses», «antelación mínima de 3 meses»
+    r"antelaci[óo]n\s+(?:m[íi]nima\s+|suficiente\s+)?de\s+([^,.;]{1,40})|"
+    # y el preaviso, que siempre la lleva detrás
+    r"preaviso\s+de\s+(?:al\s+menos\s+)?([^,.;]{1,40})")
 
 
 def _cita(texto, patron, largo=160):
@@ -878,8 +916,13 @@ P_ESCALONADA = (r"prorrog[áa]ndose\s+por\s+(?:plazos|periodos|per[íi]odos)\s+"
                 r"por\s+(?:plazos|periodos|per[íi]odos)\s+sucesivos|"
                 r"volverse\s+a\s+prorrogar|"
                 r"prórrogas\s+sucesivas\s+hasta")
+# El `[^\wÁÉÍÓÚáéíóúñ]{0,3}` del medio no es un capricho: el OCR de ZURITA mete
+# una barra suelta —«una duración máxima de | QUINCE AÑOS (15)»— y sin tolerarla
+# el patrón se saltaba el tope de verdad y se quedaba con el escalón anterior,
+# DIEZ. El contrato pasaba a morir en 2030 en vez de en 2035, y lo peor: la cifra
+# venía del propio documento, así que parecía leída y no adivinada.
 P_TOPE = (r"(?:duraci[óo]n\s+m[áa]xima|m[áa]ximo|hasta\s+(?:que\s+)?alcance"
-          r"(?:\s+una\s+duraci[óo]n)?)\s+(?:de\s+)?"
+          r"(?:\s+una\s+duraci[óo]n)?)\s+(?:de\s+)?[^\wÁÉÍÓÚáéíóúñ]{0,3}\s*"
           r"([A-Za-zÁÉÍÓÚáéíóúñ]+|\d{1,2})\s*(?:\(\d+\))?\s*a[ñn]os")
 
 P_ATA_AL_PLAZO = (r"una\s+vez\s+extinguid[oa]\s+el\s+contrato|"
@@ -940,8 +983,10 @@ def extraer(texto):
     # queda con la primera a propósito: la fórmula de otorgamiento abre el
     # documento y las posteriores son de los anexos que cita.
     c["fecha_emision"], c["cita_emision"] = buscar_fecha(texto, P_EMISION)
-    c["fecha_inicio"], c["cita_inicio"], av_ini = fecha_unica(texto, P_INICIO)
-    c["fecha_caducidad"], c["cita_duracion"], av_fin = fecha_unica(texto, P_FIN)
+    c["fecha_inicio"], c["cita_inicio"], av_ini = fecha_unica(
+        texto, P_INICIO, corte=CORTE_CLAUSULA)
+    c["fecha_caducidad"], c["cita_duracion"], av_fin = fecha_unica(
+        texto, P_FIN, corte=CORTE_CLAUSULA)
     c["ambiguedades"] = [a for a in (av_ini and f"fecha de inicio: {av_ini}",
                                      av_fin and f"vencimiento: {av_fin}") if a]
     c["anios_pactados"] = anios_de(texto)
@@ -997,8 +1042,25 @@ def extraer(texto):
     # Muchos contratos no escriben la fecha final: escriben el inicio y el plazo.
     # Derivarla es aritmética, no interpretación, y se marca como derivada para
     # que el veredicto pueda decir de dónde salió.
+    # …salvo cuando la duración es una escalera. Ahí no hay UNA fecha final: hay
+    # un primer periodo, unos escalones y un tope, y sumar cualquiera de los tres
+    # al inicio produce una fecha que el documento no pacta. ZURITA lo enseñó:
+    # inicio + DIEZ daba el 01/01/2030, que no es ni el fin del primer año ni el
+    # tope de quince. Una fecha inventada con aritmética correcta sigue siendo una
+    # fecha inventada, y ésta además decidía el estado.
+    #
+    # El estado se resuelve igual —`estado_esperado` sabe leer el tope— pero el
+    # campo se queda vacío y se dice por qué. Es un hueco declarado, que es lo
+    # que de verdad hay en el documento.
     c["caducidad_derivada"] = False
-    if c["fecha_caducidad"] is None and c["fecha_inicio"] and c["anios_pactados"]:
+    if c["fecha_caducidad"] is None and c["duracion_escalonada"]:
+        c.setdefault("ambiguedades", [])
+        c["ambiguedades"] = list(c.get("ambiguedades") or []) + [
+            "vencimiento: la duración es una escalera de prórrogas "
+            f"({c['anios_pactados'] or '?'} años el primer tramo, hasta un "
+            f"máximo de {c['duracion_maxima_anios'] or '?'}), y el documento no "
+            "fija una única fecha de vencimiento"]
+    elif c["fecha_caducidad"] is None and c["fecha_inicio"] and c["anios_pactados"]:
         c["fecha_caducidad"] = sumar_anios(c["fecha_inicio"], c["anios_pactados"])
         c["caducidad_derivada"] = True
         c["cita_duracion"] = c["cita_duracion"] or _cita(
@@ -1028,7 +1090,7 @@ def extraer(texto):
     # --- Antelación y fecha crítica --------------------------------------
     antelaciones = []
     for m in re.finditer(P_ANTELACION, texto, re.IGNORECASE):
-        d = duracion_dias(m.group(1) or m.group(2))
+        d = duracion_dias(m.group(1) or m.group(2) or m.group(3))
         if d:
             antelaciones.append({"cantidad": d[0], "unidad": d[1], "dias": d[2],
                                  "cita": _cita(texto, re.escape(m.group(0)[:40]))})
@@ -2371,7 +2433,18 @@ def evaluar(esperados, reportados, fecha_evaluacion=None, repeticion=None,
                                        "umbral."))
 
     # 8 — documento sin fecha de caducidad                           [pregunta 8]
-    sin_plazo = [e for e in esperados if e["fecha_caducidad"] is None and e["legible"]]
+    #
+    # Una duración en escalera SÍ tiene horizonte —el tope— aunque no fije una
+    # única fecha pactada. Contarla aquí como «sin vencimiento determinable»
+    # acusaba al módulo de declarar vigente un contrato sin plazo cuando el plazo
+    # está escrito en la cláusula, sólo que repartido en tres tramos.
+    def _sin_horizonte(e):
+        c = e.get("campos") or {}
+        return not (c.get("duracion_maxima_anios") and c.get("fecha_inicio"))
+
+    sin_plazo = [e for e in esperados
+                 if e["fecha_caducidad"] is None and e["legible"]
+                 and _sin_horizonte(e)]
     indebidos = [e["id_documento"] for e in sin_plazo
                  if (por_id.get(e["id_documento"]) or {}).get("estado") == "vigente"]
     con_fecha_inventada = [e["id_documento"] for e in sin_plazo

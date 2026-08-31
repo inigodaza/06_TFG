@@ -1962,6 +1962,98 @@ if (_CORPUS / "20160119_ANEXO.pdf").is_file():
               "La huella del fichero es estable y no depende del nombre")
 
 # ---------------------------------------------------------------------------
+print("\n26 · Las cuatro formas de escribir una fecha, y la cláusula de al lado")
+# Íñigo lo vio mirando documento por documento: «la mayoría no reconoce las
+# fechas de inicio ni de final». Tenía razón, y no era un fallo: eran tres formas
+# de escribir una fecha que ningún patrón cubría. Las tres salen de documentos
+# reales, no de casos inventados.
+import re as _rex
+from nucleo.texto import CORTE_CLAUSULA as _CC
+from nucleo.texto import fecha_de as _fd
+from nucleo.texto import fecha_unica as _fu
+
+for _t, _esp, _por in [
+    # el punto de millar, que escriben casi todas las escrituras
+    ("31 de octubre de 2.017", date(2017, 10, 31), "el año lleva punto de millar"),
+    ("uno de enero de 2.020", date(2020, 1, 1), "día en letra y año con punto"),
+    # la cuarta combinación: día en cifra, año en letra
+    ("26 de Enero de dos mil treinta", date(2030, 1, 26),
+     "día en cifra y año en letra"),
+    ("27 de Enero de dos mil dieciséis", date(2016, 1, 27),
+     "…y la misma forma en el inicio"),
+    # las que ya funcionaban, para que no se rompan
+    ("a 22 de Mayo de 2020", date(2020, 5, 22), "la forma corriente"),
+    ("cuatro de abril de mil novecientos noventa y cinco", date(1995, 4, 4),
+     "todo en letra, como las escrituras antiguas"),
+]:
+    comprobar(_fd(_t) == _esp, f"Se lee «{_t}»: {_por}", str(_fd(_t)))
+
+comprobar(_fd("31 de octubre de 20109") is None,
+          "Un año imposible es un año mal reconocido: no se afirma nada. El OCR "
+          "leyó 20109 y el evaluador venía afirmando 2010",
+          str(_fd("31 de octubre de 20109")))
+
+# La fecha de la cláusula de al lado no es la de ésta.
+_BULL = ("El presente contrato tendrá una duración de 20 años, y comenzará, "
+         "a-surir efecto desde el día 1 de noviembre del presente año, siendo su "
+         "término sFañá 31 de octubre de 2.017.")
+comprobar(_fu(_BULL, vigencia.P_INICIO, corte=_CC)[0] is None,
+          "Un inicio sin año no se rellena con la fecha del término: el "
+          "evaluador afirmaba que el contrato empezó el día en que acababa",
+          str(_fu(_BULL, vigencia.P_INICIO, corte=_CC)[0]))
+_GRA = ("El arriendo tendrá una duración de QUINCE AÑOS que principiarán a "
+        "contarse desde el día 27 de Enero de dos mil dieciséis, por lo cual, el "
+        "arriendo terminará el 26 de Enero de dos mil treinta.")
+comprobar(_fu(_GRA, vigencia.P_INICIO, corte=_CC)[0] == date(2016, 1, 27)
+          and _fu(_GRA, vigencia.P_FIN, corte=_CC)[0] == date(2030, 1, 26),
+          "…y cuando cada cláusula tiene su fecha, se leen las dos")
+
+# El preaviso, con la cantidad delante — que es como se dice en castellano.
+for _t, _dias in [("con DOS MESES de antelación como mínimo", 60),
+                  ("remitido con 3 meses de antelación a la propia", 90),
+                  ("con una antelación mínima de 3 meses", 90),
+                  ("un preaviso de 2 meses de tiempo", 60),
+                  ("avisará con quince días de antelación", 15)]:
+    _v = [duracion_dias(m.group(1) or m.group(2) or m.group(3))
+          for m in _rex.finditer(vigencia.P_ANTELACION, _t, _rex.IGNORECASE)]
+    _v = [x[2] for x in _v if x]
+    comprobar(_dias in _v, f"Preaviso en «{_t[:44]}» → {_dias} días", str(_v))
+
+# La prórroga, con las fórmulas del Código Civil y con el «no» delante.
+for _t, _esp in [
+    ("el contrato podrá ser prorrogado por la tácita, art. 1566", "tacita"),
+    ("podrá prorrogarse de año en año, sucesivamente", "tacita"),
+    ("prorrogándose por plazos anuales sucesivos", "tacita"),
+    ("RENUNCIA DE LA TÁCITA RECONDUCCIÓN. el presente contrato no se "
+     "prorrogará automáticamente", "renunciada"),
+    ("las partes renuncian expresamente a la tácita reconducción", "renunciada"),
+]:
+    _ren = bool(_rex.search(vigencia.P_RENUNCIA, _t, _rex.IGNORECASE))
+    _tac = bool(_rex.search(vigencia.P_PRORROGA_TACITA, _t, _rex.IGNORECASE))
+    _exp = bool(_rex.search(vigencia.P_PRORROGA_EXPRESA, _t, _rex.IGNORECASE))
+    _r = ("renunciada" if _ren else "expresa" if _exp and not _tac
+          else "tacita" if _tac and not _exp else "no_consta")
+    comprobar(_r == _esp, f"«{_t[:50]}» → {_esp}", _r)
+
+# Y la escalera: tope leído pese al ruido del OCR, y sin fecha inventada.
+_ESC2 = vigencia.extraer(
+    "comenzará a contarse desde el día uno de enero de 2.020, siendo la "
+    "duración del mismo de UN AÑO, prorrogándose por plazos anuales sucesivos "
+    "hasta que alcance una duración de DIEZ AÑOS (10), para volverse a "
+    "prorrogar por un periodo de CINCO AÑOS (5), hasta que alcance una "
+    "duración máxima de | QUINCE AÑOS (15), fecha en que queda extinguido.")
+comprobar(_ESC2["duracion_maxima_anios"] == 15,
+          "El tope se lee aunque el OCR meta una barra suelta antes del número",
+          str(_ESC2["duracion_maxima_anios"]))
+comprobar(_ESC2["fecha_caducidad"] is None,
+          "Una escalera no tiene UNA fecha de vencimiento, así que no se deriva "
+          "ninguna: sumar el escalón al inicio daba una fecha que el documento "
+          "no pacta",
+          str(_ESC2["fecha_caducidad"]))
+comprobar(any("escalera" in a for a in (_ESC2.get("ambiguedades") or [])),
+          "…y se dice por qué está vacía, en vez de dejar el hueco mudo")
+
+# ---------------------------------------------------------------------------
 print("\n" + ("Todo correcto." if not fallos
               else f"{len(fallos)} comprobación(es) fallida(s):\n  - "
                    + "\n  - ".join(fallos)))

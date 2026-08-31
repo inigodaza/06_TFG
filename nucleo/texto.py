@@ -60,7 +60,13 @@ MESES = {"enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6
          "julio": 7, "agosto": 8, "septiembre": 9, "setiembre": 9, "octubre": 10,
          "noviembre": 11, "diciembre": 12}
 
-FECHA_LARGA = r"(\d{1,2})\s+de\s+([A-Za-zÁÉÍÓÚáéíóú]+)\s+de\s+(\d{4})"
+# El año admite el punto de millar: los contratos escriben «31 de octubre de
+# 2.017» y las escrituras «uno de enero de 2.020». Sin esto, ZURITA no daba
+# fecha de inicio y BULL MCCABES no daba vencimiento —dos documentos enteros
+# leídos a medias por un punto—. No hay ambigüedad posible: los dos «de» que lo
+# rodean impiden confundirlo con un 31.10.2017 en formato corto.
+_A4 = r"\d{1,2}\.?\d{3}"
+FECHA_LARGA = rf"(\d{{1,2}})\s+de\s+([A-Za-zÁÉÍÓÚáéíóú]+)\s+de[l]?\s+({_A4})"
 FECHA_CORTA = r"(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})"
 # ISO primero: IAlert emite 2026-08-18, que leído como día/mes/año daría 2001.
 FECHA_ISO = r"(\d{4})-(\d{1,2})-(\d{1,2})"
@@ -158,11 +164,19 @@ def fecha_de(cadena):
     m = re.search(FECHA_LARGA, str(cadena))
     if m:
         mes = MESES.get(plano(m.group(2)))
-        if mes:
+        anio = int(m.group(3).replace(".", ""))
+        # Un año fuera de rango es un año mal reconocido, no un año raro. El
+        # contrato de renovación de 2019 salió del OCR como «31 de octubre de
+        # 20109», y con el patrón anterior —que cogía cuatro cifras y paraba—
+        # el evaluador afirmaba que se firmó en 2010. Nueve años de diferencia
+        # sostenidos por una cita literal. Ahora no hay fecha, que es la verdad.
+        if mes and 1900 <= anio <= 2100:
             try:
-                return date(int(m.group(3)), mes, int(m.group(1)))
+                return date(anio, mes, int(m.group(1)))
             except ValueError:
                 return None
+        if mes:
+            return None
     m = re.search(FECHA_ISO, str(cadena))
     if m:
         try:
@@ -180,13 +194,32 @@ def fecha_de(cadena):
     # Mixta: el día con letra y el año con cifra —«el día uno de enero de 2020»—.
     # Es frecuentísima en los contratos y no la cubre ninguna de las anteriores:
     # `FECHA_LARGA` exige el día en cifra y `FECHA_LETRA` el año en letra.
-    m = re.search(rf"({_DIA})\s+de\s+([a-záéíóúñ]+)\s+de[l]?\s+(\d{{4}})",
+    m = re.search(rf"({_DIA})\s+de\s+([a-záéíóúñ]+)\s+de[l]?\s+({_A4})",
                   plano(cadena))
     if m:
         dia, mes = numero_en_letra(m.group(1)), MESES.get(plano(m.group(2)))
         if dia and mes and 1 <= dia <= 31:
             try:
-                return date(int(m.group(3)), mes, dia)
+                return date(int(m.group(3).replace(".", "")), mes, dia)
+            except ValueError:
+                return None
+
+    # La cuarta combinación: el día en cifra y el año en letra —«terminará el 26
+    # de Enero de dos mil treinta»—. Faltaba, y con ella se quedaban sin leer el
+    # inicio y el vencimiento del contrato de Baltasar Gracián: un documento del
+    # que se sabe todo menos las dos fechas que deciden si está vigente.
+    #
+    # Las cuatro formas existen porque los contratos las mezclan sin criterio: el
+    # mismo escribano pone el día en cifra y el año en letra en una cláusula, y
+    # al revés en la siguiente. Cubrir sólo tres es dejar fuera documentos
+    # enteros por cómo los mecanografió alguien en 1997.
+    m = re.search(rf"(\d{{1,2}})\s+de\s+([a-záéíóúñ]+)\s+de[l]?\s+({_ANIO})",
+                  plano(cadena))
+    if m:
+        mes, anio = MESES.get(plano(m.group(2))), numero_en_letra(m.group(3))
+        if mes and anio and 1900 <= anio <= 2100:
+            try:
+                return date(anio, mes, int(m.group(1)))
             except ValueError:
                 return None
 
@@ -204,21 +237,51 @@ def fecha_de(cadena):
     return None
 
 
-def buscar_fecha(texto, patron, ventana=80):
+# Palabras que abren la cláusula CONTRARIA. Una fecha que aparece después de una
+# de ellas ya no habla de lo que se estaba buscando.
+#
+# Existe por el contrato de BULL MCCABES de 1997: «comenzará a surtir efecto
+# desde el día 1 de noviembre del presente año, siendo su término 31 de octubre
+# de 2.017». La fecha de inicio no lleva año —«del presente año»—, así que la
+# búsqueda saltaba por encima y se traía la del término. El evaluador afirmaba
+# que el contrato empezó el 31/10/2017, derivaba un vencimiento en 2037 y lo
+# sostenía con una cita literal del documento. Todo verificable, todo falso.
+#
+# Ante esto sólo hay una respuesta honesta: si entre el ancla y la fecha se cruza
+# la palabra que abre la otra cláusula, no hay fecha. El documento sí dice cuándo
+# empieza; lo que no dice es el año, y eso es un hueco, no un dato.
+CORTE_CLAUSULA = r"(?:siendo\s+su\s+t[ée]rmino|\bt[ée]rmino\b|finaliz|termin|" \
+                 r"expir|venc|caduc|extingu|comenzar|surtir\s+efecto|" \
+                 r"a\s+contarse\s+desde|entrar[áa]?\s+en\s+vigor)"
+
+
+def _cola(texto, fin, ventana, corte=None):
+    """El trozo donde se busca la fecha, cortado en la cláusula siguiente."""
+    cola = texto[fin: fin + ventana]
+    cola = re.split(r"(?<=\d{4})\s*[.;]", cola)[0]
+    if corte:
+        m = re.search(corte, cola, re.IGNORECASE)
+        if m:
+            cola = cola[:m.start()]
+    return cola
+
+
+def buscar_fecha(texto, patron, ventana=80, corte=None):
     """
     Primera fecha que aparece a continuación de `patron`, dentro de la misma frase.
 
     Devuelve (fecha, cita) — la cita es el fragmento literal que la sostiene, para
     que el veredicto pueda anclarse a algo verificable en el documento.
+
+    `corte` recorta la ventana en cuanto aparece la cláusula contraria: sin él, un
+    inicio sin año se lee con la fecha del vencimiento.
     """
     # MULTILINE porque varios patrones anclan en `^` para exigir que la fórmula
     # abra línea —«En Madrid, a 10 de diciembre de 2015»— y sin él ese ancla sólo
     # casaba con el principio del fichero: en un PDF real nunca es la primera
     # línea, así que la fecha de firma se perdía siempre.
     for m in re.finditer(patron, texto, re.IGNORECASE | re.MULTILINE):
-        cola = texto[m.end(): m.end() + ventana]
-        cola = re.split(r"(?<=\d{4})\s*[.;]", cola)[0]
-        f = fecha_de(cola)
+        f = fecha_de(_cola(texto, m.end(), ventana, corte))
         if f:
             inicio = max(0, m.start() - 10)
             cita = re.sub(r"\s+", " ", texto[inicio: m.end() + 60]).strip()
@@ -226,7 +289,7 @@ def buscar_fecha(texto, patron, ventana=80):
     return None, None
 
 
-def fechas_candidatas(texto, patron, ventana=80):
+def fechas_candidatas(texto, patron, ventana=80, corte=None):
     """
     TODAS las fechas que el patrón encuentra, no sólo la primera.
 
@@ -242,9 +305,7 @@ def fechas_candidatas(texto, patron, ventana=80):
     """
     salida, vistas = [], set()
     for m in re.finditer(patron, texto, re.IGNORECASE | re.MULTILINE):
-        cola = texto[m.end(): m.end() + ventana]
-        cola = re.split(r"(?<=\d{4})\s*[.;]", cola)[0]
-        f = fecha_de(cola)
+        f = fecha_de(_cola(texto, m.end(), ventana, corte))
         if f and f not in vistas:
             vistas.add(f)
             ini = max(0, m.start() - 60)
@@ -253,7 +314,7 @@ def fechas_candidatas(texto, patron, ventana=80):
     return salida
 
 
-def fecha_unica(texto, patron, ventana=80):
+def fecha_unica(texto, patron, ventana=80, corte=None):
     """
     La fecha que el patrón encuentra, **sólo si encuentra una**.
 
@@ -266,7 +327,7 @@ def fecha_unica(texto, patron, ventana=80):
     es justo lo que un evaluador no puede permitirse: quien lea el veredicto no
     tiene forma de saber cuál de las veces le ha tocado.
     """
-    cands = fechas_candidatas(texto, patron, ventana)
+    cands = fechas_candidatas(texto, patron, ventana, corte)
     if not cands:
         return None, None, None
     if len(cands) == 1:
