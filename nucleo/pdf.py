@@ -213,6 +213,23 @@ def integridad(texto, paginas_fichero):
 CACHES = [Path(__file__).resolve().parent.parent / "demo" / "datos" / "vigencia"]
 
 
+def _huella(ruta, trozo=1 << 20):
+    """
+    Identidad del fichero, independiente de cómo se llame.
+
+    Se lee entero en bloques para no cargar en memoria un PDF de varios megas
+    —ZURITA son 3,7— y se devuelve el resumen. Dos ficheros con la misma huella
+    son el mismo fichero; dos copias del mismo documento reguardadas por
+    programas distintos no lo son, y eso está bien: en la duda se reconoce.
+    """
+    import hashlib
+    h = hashlib.sha256()
+    with open(ruta, "rb") as f:
+        for bloque in iter(lambda: f.read(trozo), b""):
+            h.update(bloque)
+    return h.hexdigest()
+
+
 def _cache_de(ruta):
     """
     El texto ya reconocido de este documento, venga de donde venga.
@@ -244,12 +261,41 @@ def _cache_de(ruta):
                 parciales.append(cand)
     if exactos:
         return exactos[0]
+
     # El parcial sólo vale si es **único**. «DERECHOS SUPERFICIE» está contenido
     # en «RESCATE DERECHOS SUPERFICIE», así que con la regla de «el primero que
     # encaje» el rescate se leía con el texto de la escritura original: un
     # veredicto sobre un documento sacado de otro, y sin que nada lo delatara.
     # Ante dos candidatos no se elige — la misma regla que ya gobierna las fechas.
-    return parciales[0] if len(parciales) == 1 else None
+    if len(parciales) != 1:
+        return None
+
+    # Y aunque sea único, el nombre no basta.
+    #
+    # Un parcial acepta cualquier nombre que contenga al de la caché: si mañana
+    # llega un «20160119 ANEXO MODIFICADO», que es otro documento, la regla del
+    # nombre le daría el texto del viejo. El evaluador emitiría un veredicto
+    # sobre un documento **leyendo otro**, con todos sus campos anclados a citas
+    # que existen —en el documento equivocado—, y ni el anclaje ni la aritmética
+    # lo detectarían: son coherentes entre sí, sólo que con la fuente cambiada.
+    # Es el fallo más grave que puede cometer un evaluador, porque no se nota.
+    #
+    # Contar páginas no lo cierra: los dos anexos de 2016 tienen una. Lo que sí
+    # lo cierra es comparar el fichero entero. Y encaja con lo que el parcial
+    # existe para resolver —un documento que ha cambiado de nombre al pasar por
+    # un correo o un zip—, porque **renombrar no cambia los bytes**. Si el PDF
+    # es el mismo fichero, se aprovecha el texto; si no lo es, se reconoce de
+    # verdad aunque tarde. Ante la duda, trabajar de más.
+    candidata = parciales[0]
+    origen = Path(str(candidata)[:-len(".ocr.txt")] + ".pdf")
+    if not origen.is_file():
+        return None                       # no se puede corroborar: se reconoce
+    try:
+        if _huella(origen) != _huella(ruta):
+            return None
+    except OSError:
+        return None
+    return candidata
 
 
 def leer(ruta, ocr=True):

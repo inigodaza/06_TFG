@@ -1,0 +1,117 @@
+20160119 ANEXO
+Vigente
+Vencimiento del documento (1240 días)
+El documento se puede usar como referencia válida.
+Validez formal
+Archivo | C:\Users\marti\Documents\TFG\Modelo0.1\Frontend..\datos\20160119 ANEXO.pdf
+Ciudad | Zaragoza
+Dirección | CR A-2 281,6 CALATORAO
+Tipo de documento | Contrato de arrendamiento de local comercial (anexo)
+Familia documental | Contratos y relaciones mercantiles
+Cadena documental | cr a 2 281 6 calatorao zaragoza
+Fecha de firma | 2016-01-19
+Fecha de inicio | 2016-01-19
+Plazo | 14 años
+Fecha de vencimiento | 2030-01-19
+
+20190115 SUBROGACION A REPSOL COMERCIAL-LOS OLIVOS
+No clasificado (revisar)
+Falta la fecha de vencimiento; revisa el documento y complétala manualmente.
+Validez formal
+Archivo | C:\Users\marti\Documents\TFG\Modelo0.1\Frontend..\datos\SUBROGACION A REPSOL COMERCIAL-LOS OLIVOS.pdf
+Ciudad | Zaragoza
+Dirección | —
+Tipo de documento | Addendum de contrato de arrendamiento de estación de servicio
+Familia documental | Contratos y relaciones mercantiles
+Cadena documental | —
+Fecha de firma | 2019-01-15
+Fecha de inicio | 2019-01-15
+Plazo | —
+Fecha de vencimiento | —
+Preaviso (días) | —
+Fecha crítica de alerta | —
+Arrendador | SERVIARAGON, S.A.
+Arrendatario | REPSOL COMERCIAL DE PRODUCTOS PETROLIFEROS, S.A.
+Número de páginas | 4
+
+20190208 APORTACION REPSOL A REFORMA TIENDA 008
+No clasificado (revisar)
+No se ha podido determinar con seguridad la vigencia de este documento; revísalo manualmente.
+Validez formal
+Archivo | C:\Users\marti\Documents\TFG\Modelo0.1\Frontend..\datos\APORTACION REPSOL A REFORMA TIENDA 008.pdf
+Ciudad | Madrid
+Dirección | CR-A2, 280,1
+Tipo de documento | Anexo al contrato de arrendamiento industrial
+Familia documental | Contratos y relaciones mercantiles
+Cadena documental | cr a2 280 1 madrid
+Fecha de firma | 2019-02-08
+Fecha de inicio | 2019-02-08
+Plazo | —
+Fecha de vencimiento | —
+Preaviso (días) | —
+Fecha crítica de alerta | —
+Arrendador | REPSOL COMERCIAL, S.A.
+Arrendatario | SERVI GON, S.A.
+Número de páginas | 4
+
+20200522 APORTACION REPSOL A REFORMA EESS
+Archivo | C:\Users\marti\Documents\TFG\Modelo0.1\Frontend..\datos\APORTACION REPSOL A REFORMA EESS.pdf
+Ciudad | Calatorao
+Dirección | CR-A2, nº 12933
+Tipo de documento | Anexo al contrato de arrendamiento industrial
+Familia documental | Contratos y relaciones mercantiles
+Cadena documental | cr a2 no 12933 calatorao
+Fecha de firma | 2020-05-22
+Fecha de inicio | 2020-05-22
+Plazo | —
+Fecha de vencimiento | 2021-12-31
+Preaviso (días) | —
+Fecha crítica de alerta | —
+Arrendador | REPSOL COMERCIAL DE PRODUCTOS PETROLÍFEROS, S.A.
+Arrendatario | SERVIARAGON S.A.
+
+CONTRATO ARRENDAMIENTO CRED
+Vigente
+Actualización anual de la renta por IPC (140 días)
+El documento se puede usar como referencia válida.
+Este documento es un contrato de arrendamiento de industria de una estación de servicio destinado a la venta de carburantes, ubicado en CR A-2, 280,1 (Calatorao).
+Validez formal
+
+Campo | Valor
+Archivo | C:\Users\marti\Documents\TFG\Modelo0.1\Frontend..\datos\ARRENDAMIENTO CRED.pdf
+Ciudad | Calatorao
+Dirección | —
+Tipo de documento | Contrato de arrendamiento de industria de estación de servicio
+Familia documental | Contratos y relaciones mercantiles
+Cadena documental | —
+Fecha de firma | 2015-12-10
+Fecha de inicio | 2016-01-15
+Plazo | 14 años
+Fecha de vencimiento | 2030-01-15
+Prórroga tácita | ✓
+Preaviso (días) | 90
+Fecha crítica de alerta | —
+Arrendador | SERVIARAGÓN, S.A.
+Arrendatario | CAMPSA ESTACIONES DE SERVICIO, S.A.
+Fecha de subida | 2026-08-26 15:56
+Subido por | —
+Última modificación | 2026-08-26 15:56
+Número de páginas | 8
+
+DERECHOS SUPERFICIE
+Obsoleto
+El documento se puede desechar o conservar como fuente histórica.
+Validez formal
+Archivo | C:\Users\marti\Documents\TFG\Modelo0.1\Frontend..\datos\DERECHOS SUPERFICIE.pdf
+Ciudad | Calatorao
+Dirección | Autovía de Aragón, M.DCHA., Ctra. N-II Km. 280.100
+Tipo de documento | Contrato de derecho de superficie y cesión de derechos de construcción
+Familia documental | Contratos y relaciones mercantiles
+Cadena documental | autovia de aragon m dcha ctra n ii km 280 100 calatorao
+Fecha de firma | 1995-04-04
+Fecha de inicio | 1995-04-04
+Plazo | 25 años
+Fecha de vencimiento | 2020-04-04
+Preaviso (días) | —
+Fecha crítica de alerta | —
+Número de páginas | 20

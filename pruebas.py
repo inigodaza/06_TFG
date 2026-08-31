@@ -1918,6 +1918,50 @@ comprobar("Falta una carpeta entera" in _fuente_app,
           "…y si no está, se dice con esas palabras y no con un ModuleNotFoundError")
 
 # ---------------------------------------------------------------------------
+print("\n25 · La caché de OCR identifica el fichero, no su nombre")
+# El texto reconocido se guarda junto al PDF y se busca por nombre, porque un
+# documento cambia de nombre al pasar por un correo o un zip. Pero el nombre es
+# una etiqueta: si «20160119 ANEXO MODIFICADO» —otro documento— se lleva el texto
+# del anexo de 2016, el evaluador emite un veredicto **leyendo otro documento**,
+# con sus campos anclados a citas que existen en el sitio equivocado. Ni el
+# anclaje ni la aritmética lo ven: son coherentes entre sí. Por eso una
+# coincidencia parcial de nombre se corrobora comparando el fichero entero.
+import shutil as _sh
+import tempfile as _tmpf
+from nucleo import pdf as _P
+
+_CORPUS = pathlib.Path("demo/datos/vigencia")
+if (_CORPUS / "20160119_ANEXO.pdf").is_file():
+    with _tmpf.TemporaryDirectory() as _td:
+        def _cache_para(fuente, nombre):
+            d = pathlib.Path(_td) / f"{nombre}.pdf"
+            _sh.copy(_CORPUS / fuente, d)
+            return _P._cache_de(d)
+
+        comprobar(_cache_para("202002_CTO_ALQUILER_ZURITA.pdf",
+                              "copia de 202002 CTO ALQUILER ZURITA") is not None,
+                  "El mismo fichero renombrado sigue aprovechando su lectura: "
+                  "renombrar no cambia los bytes")
+        comprobar(_cache_para("20160128_ANEXO.pdf",
+                              "20160119_ANEXO_MODIFICADO") is None,
+                  "Pero OTRO documento con nombre parecido no hereda el texto "
+                  "del primero: se reconoce de verdad aunque tarde")
+        comprobar(_cache_para("DERECHOS_SUPERFICIE.pdf",
+                              "RESCATE_DERECHOS_SUPERFICIE_2") is None,
+                  "…ni siquiera en el par que ya provocó este fallo una vez")
+        comprobar(_cache_para("202002_CTO_ALQUILER_ZURITA.pdf",
+                              "documento_que_nadie_ha_visto") is None,
+                  "Un nombre sin parecido alguno no busca similitudes: escanea")
+
+    _con_cache = sum(1 for p in _CORPUS.glob("*.pdf") if _P._cache_de(p))
+    comprobar(_con_cache == 13,
+              "Y los 13 escaneos del corpus siguen encontrando su lectura",
+              str(_con_cache))
+    _h = _P._huella(_CORPUS / "20160119_ANEXO.pdf")
+    comprobar(_h == _P._huella(_CORPUS / "20160119_ANEXO.pdf") and len(_h) == 64,
+              "La huella del fichero es estable y no depende del nombre")
+
+# ---------------------------------------------------------------------------
 print("\n" + ("Todo correcto." if not fallos
               else f"{len(fallos)} comprobación(es) fallida(s):\n  - "
                    + "\n  - ".join(fallos)))
