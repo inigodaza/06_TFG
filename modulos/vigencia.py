@@ -1712,7 +1712,8 @@ def _desde_eventos(texto):
             evento=(m_ev.group(1).strip().lower() if m_ev else "evento"),
             fecha_evento=m_f.group(1) if m_f else None,
             dias=int(m_d.group(1)) if m_d else None,
-            preaviso_dias=int(m_p.group(1)) if m_p else None))
+            preaviso_dias=int(m_p.group(1)) if m_p else None,
+            origen="panel"))
     return out
 
 
@@ -1921,12 +1922,24 @@ def _ficha_de(campos, cuerpo):
 
     # La alerta de la cabecera —«Actualización anual de la renta por IPC (140
     # días)»— es un evento, no un estado: viaja aparte y no puntúa como estado.
+    #
+    # Pero tampoco es una alerta del panel de avisos, y la diferencia importa.
+    # Esto es la **insignia de la ficha**: una cuenta atrás que el módulo pinta
+    # sobre la tarjeta del documento. Por construcción no lleva fecha ni declara
+    # con cuánta antelación salta, porque no salta: acompaña. El panel de
+    # «Próximos eventos» es otra pantalla, y sus líneas sí llevan las dos cosas.
+    #
+    # Se marca el origen porque sin él el caso 7 daba por fallido a Martín por no
+    # declarar la antelación de una insignia — le exigía a una cuenta atrás lo
+    # que sólo se le puede pedir a una alerta. Acusar a un compañero de un fallo
+    # que no ha cometido es el error que este bloque existe para no cometer, y
+    # aquí lo estaba cometiendo el propio evaluador.
     eventos = []
     for m in re.finditer(r"^(.{4,90}?)\s*\((-?\d{1,5})\s*d[íi]as?\)\s*$",
                          cuerpo, re.MULTILINE):
         eventos.append(_registro(id_doc, None, None, False, m.group(0),
                                  tipo="evento", evento=m.group(1).strip(),
-                                 dias=int(m.group(2))))
+                                 dias=int(m.group(2)), origen="insignia"))
 
     preaviso = campos.get("preaviso_dias")
     reg = _registro(
@@ -2142,10 +2155,14 @@ def _desglosar(casos, esperados, estados, eventos, contraste, por_id,
             else "ningún documento vence en la fecha de consulta",
             _lista(declarados) if hoy_mismo else NO_EJERCITADO)
 
+    _alertas = [r for r in eventos if r.get("origen") != "insignia"]
+    _insignias = [r for r in eventos if r.get("origen") == "insignia"]
     d[7] = ("cada alerta con su fecha y la antelación aplicada",
-            (f"{len(eventos)} alerta(s), "
-             f"{sum(1 for r in eventos if r.get('preaviso_dias'))} con antelación "
-             f"declarada") if eventos else SIN_DATO)
+            (f"{len(_alertas)} alerta(s), "
+             f"{sum(1 for r in _alertas if r.get('preaviso_dias'))} con antelación "
+             f"declarada") if _alertas else
+            (f"ninguna alerta; sólo {len(_insignias)} insignia(s) de ficha"
+             if _insignias else SIN_DATO))
 
     d[8] = ((_lista([e["id_documento"] for e in sin_plazo])
              + ": vigencia no determinada, sin fecha") if sin_plazo
@@ -2413,18 +2430,36 @@ def evaluar(esperados, reportados, fecha_evaluacion=None, repeticion=None,
                f"criterio del caso límite no está fijado."))
 
     # 7 — aviso con antelación                                       [pregunta 7]
-    con_preaviso = [r for r in eventos if r.get("preaviso_dias")]
-    if not eventos:
-        casos[7] = B.caso(False, "No se ha pegado ninguna alerta del módulo.",
-                          omitir=True,
-                          requiere=("la pantalla de alertas del módulo, con la "
-                                    "antelación aplicada a cada una"))
+    #
+    # Sólo puntúan las alertas del **panel de avisos**. Las insignias de la ficha
+    # —«Vencimiento del documento (1240 días)», la cuenta atrás que el módulo
+    # pinta sobre la tarjeta— no son alertas: no llevan fecha ni declaran umbral
+    # porque no saltan, acompañan. Contarlas aquí daba el caso por FALLIDO con
+    # severidad alta por no declarar la antelación de algo a lo que no se le
+    # puede exigir. La respuesta correcta no es «Martín falla», es «todavía no me
+    # has enseñado la pantalla donde eso se ve».
+    alertas = [r for r in eventos if r.get("origen") != "insignia"]
+    insignias = [r for r in eventos if r.get("origen") == "insignia"]
+    con_preaviso = [r for r in alertas if r.get("preaviso_dias")]
+    if not alertas:
+        casos[7] = B.caso(
+            False,
+            ("No se ha pegado ninguna alerta del módulo."
+             if not insignias else
+             f"Sólo se han pegado insignias de ficha ({len(insignias)}: "
+             f"{', '.join(sorted({r['id_documento'] for r in insignias}))}), que "
+             f"son una cuenta atrás sobre la tarjeta del documento y no declaran "
+             f"—ni tienen por qué— con qué antelación saltaría un aviso. El caso "
+             f"necesita el panel de avisos, que es otra pantalla."),
+            omitir=True,
+            requiere=("la pantalla de alertas del módulo, con la "
+                      "antelación aplicada a cada una"))
     else:
-        sin_datos = [r["id_documento"] for r in eventos
+        sin_datos = [r["id_documento"] for r in alertas
                      if not (r.get("fecha_evento") and r.get("dias") is not None)]
         casos[7] = B.caso(
             bool(con_preaviso) and not sin_datos,
-            f"{len(eventos)} alerta(s) emitidas, {len(con_preaviso)} con la "
+            f"{len(alertas)} alerta(s) emitidas, {len(con_preaviso)} con la "
             f"antelación aplicada declarada."
             + (f" Sin fecha o sin antelación: {', '.join(sin_datos)}."
                if sin_datos else "")

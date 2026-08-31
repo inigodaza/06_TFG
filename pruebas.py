@@ -2054,6 +2054,44 @@ comprobar(any("escalera" in a for a in (_ESC2.get("ambiguedades") or [])),
           "…y se dice por qué está vacía, en vez de dejar el hueco mudo")
 
 # ---------------------------------------------------------------------------
+print("\n27 · Una insignia de ficha no es una alerta")
+# El caso 7 daba FALLIDO con severidad alta porque la ficha de 20160119 ANEXO
+# lleva «Vencimiento del documento (1240 días)» y esa línea se contaba como
+# alerta del panel de avisos. Una insignia es una cuenta atrás pintada sobre la
+# tarjeta: no lleva fecha ni declara umbral porque no salta, acompaña. Exigirle
+# la antelación aplicada es acusar a Martín de un fallo que no ha cometido — el
+# error que este bloque existe para detectar, cometido por el propio evaluador.
+_regs27, _ = vigencia.interpretar(vigencia.SALIDA_IALERT_TODAS)
+_ev27 = [r for r in _regs27 if r["tipo"] == "evento"]
+comprobar(bool(_ev27) and all(r.get("origen") == "insignia" for r in _ev27),
+          "Las líneas «… (N días)» de una ficha se marcan como insignia",
+          str([r.get("origen") for r in _ev27]))
+
+_panel = vigencia.interpretar(
+    "CRITICO Vencimiento del documento — 2026-08-18 (1 día) — Zaragoza · PRUEBA_1\n"
+    "PROXIMO Fecha límite para avisar — 2026-08-31 (14 días) — preaviso legal: "
+    "30 días — Zaragoza · PRUEBA_2")[0]
+_pan = [r for r in _panel if r["tipo"] == "evento"]
+comprobar(bool(_pan) and all(r.get("origen") == "panel" for r in _pan),
+          "…y las del panel de avisos, como panel", str([r.get("origen") for r in _pan]))
+
+_docs27 = [_P.leer(p) for p in sorted(_CORPUS.glob("*.pdf"))
+           if not p.stem.startswith("PRUEBA_")] if _CORPUS.is_dir() else []
+if _docs27:
+    _esp27, _ctx27 = vigencia.verdad_de_campo(_docs27, date(2026, 8, 31))
+    _res27 = vigencia.evaluar(_esp27, _regs27, date(2026, 8, 31), contexto=_ctx27)
+    _c7 = _res27["casos"][7]
+    comprobar(_c7["resultado"] == "pendiente",
+              "Con sólo insignias, el caso 7 queda PENDIENTE y no fallido: falta "
+              "una pantalla, no falla un módulo", _c7["resultado"])
+    comprobar(bool(_c7.get("requiere")),
+              "…y dice qué hace falta para poder comprobarlo",
+              str(_c7.get("requiere")))
+    comprobar("insignia" in (_c7.get("observado") or ""),
+              "Lo observado nombra la insignia en vez de contarla como alerta",
+              str(_c7.get("observado")))
+
+# ---------------------------------------------------------------------------
 print("\n" + ("Todo correcto." if not fallos
               else f"{len(fallos)} comprobación(es) fallida(s):\n  - "
                    + "\n  - ".join(fallos)))

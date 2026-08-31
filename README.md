@@ -129,10 +129,12 @@ calculados, nunca documentos; **toda recomendación tiene que citar un caso
 fallido o pendiente** —si no lo cita, se descarta entera y el descarte se
 cuenta—; y hay versión sin modelo.
 
-**El historial cierra el bucle.** Guarda una instantánea por evaluación y compara
-con la anterior, así que el sistema puede decir *«el caso 7 fallaba el 22 y hoy
-pasa; tasa 80 % → 100 %»*. Separa mejoras de regresiones a propósito: un evaluador
-que sólo celebrase los avances sería complaciente.
+**El historial compara ejecuciones.** Guarda una instantánea por evaluación y la
+compara con la anterior, así que el sistema puede decir *«el caso 7 fallaba el 22
+y hoy pasa; tasa 80 % → 100 %»*. Separa mejoras de regresiones a propósito: un
+evaluador que sólo celebrase los avances sería complaciente. El mecanismo está
+probado; el ciclo entero con la corrección de un compañero está pendiente de la
+reexportación de Mencía, y `ALCANCE.md` §7 lo declara en esos términos.
 
 ### Permisos por rama, y por qué son dos
 

@@ -336,8 +336,9 @@ diagnóstico del sistema más que cualquiera de los hallazgos individuales:
 | | |
 |---|---|
 | Documentos con capa de texto | **0 de 13** |
-| Leídos por el lector determinista, al recibirlos | **1 de 13** |
-| Leídos tras los cuatro cambios de abajo | **7 de 13** |
+| Con veredicto, al recibirlos | **1 de 13** |
+| Con veredicto tras los cuatro cambios de abajo | **7 de 13** |
+| Con veredicto hoy (31/08) | **11 de 13** |
 
 **Ninguno trae texto.** Los trece son fotocopias de un RICOH. El OCR dejó de ser
 una mejora y pasó a ser la única puerta de entrada al corpus.
@@ -364,12 +365,122 @@ Los cuatro cambios que subieron de 1 a 7 son de diseño, no parches por document
 4. **Números y fechas escritos con letra**, que es como escriben las escrituras
    notariales: *veinticinco años*, *mil novecientos noventa y cinco*.
 
+### Los cuatro que faltaban (31/08)
+
+Mirar el corpus documento a documento —una pantalla por PDF, con sus ocho campos
+y sus huecos a la vista— destapó cuatro huecos más, y esta vez no eran de
+diseño sino de **cómo se escribe una fecha en castellano**:
+
+1. **El punto de millar.** Las escrituras escriben `2.017` y `2.020`. El patrón
+   exigía cuatro cifras seguidas. Por un punto, dos contratos enteros se leían a
+   medias.
+2. **La cuarta combinación**: día en cifra y año en letra —«terminará el 26 de
+   Enero de dos mil treinta»—. Había tres cubiertas de las cuatro posibles.
+3. **El preaviso con la cantidad delante**, que es como se dice: «con DOS MESES
+   de antelación». El patrón sólo leía «antelación de dos meses».
+4. **Las fórmulas del artículo 1566** —«prorrogado por la tácita», «prorrogarse
+   de año en año»— que son prórroga tácita sin llevar esa palabra al lado.
+
+Y **dos errores**, que pesan más que los huecos porque un hueco se ve y un error
+se disfraza de dato bueno:
+
+- Un contrato decía **«prórroga tácita» citando la cláusula que la renuncia**.
+  El texto dice «RENUNCIA DE LA TÁCITA RECONDUCCIÓN … el presente contrato **no**
+  se prorrogará automáticamente»; el patrón casaba con el título y la negación no
+  estaba contemplada. La cita era literal y la conclusión, la contraria.
+- Otro **afirmaba que el contrato empezó el día en que acababa**: «comenzará
+  desde el día 1 de noviembre del presente año, siendo su término 31 de octubre
+  de 2.017». El inicio no lleva año, así que la búsqueda saltaba por encima y se
+  traía la fecha del término, y de ahí derivaba un vencimiento en 2037.
+
+De este segundo sale una regla general: **una fecha de la cláusula contraria no
+es evidencia de ésta**. La ventana de búsqueda se corta en cuanto aparece la
+palabra que abre la otra cláusula. Si el documento dice cuándo empieza pero no el
+año, eso es un hueco, no un dato.
+
 Y un límite que conviene declarar sin adornos: **sobre este corpus, el lector
-determinista solo no llega**. Seis documentos siguen sin veredicto y no por falta
-de patrones, sino porque el OCR de una máquina de escribir de 1995 devuelve
+determinista solo no llega a todo**. Dos documentos siguen sin veredicto y no por
+falta de patrones, sino porque el OCR de una máquina de escribir de 1995 devuelve
 «cuatroúe abril» y pierde el año. Para ésos, el **modo asistido** deja de ser un
 extra y pasa a ser la vía principal — con la misma frontera de siempre: el modelo
 **lee**, la regla **decide**.
+
+---
+
+### Medir al evaluador contra una verdad que no ha escrito él
+
+Todo lo anterior dice **cuántos** documentos lee. No dice si lo que lee es
+correcto, y ésa es otra pregunta: un lector que se invente siete fechas
+plausibles saca la misma cifra que uno que las lea bien. En un evaluador esa
+diferencia lo es todo, porque una fecha inventada no se queda en un hueco —
+**acusa a un compañero de un fallo que no ha cometido**.
+
+Por eso existe un **conjunto de referencia etiquetado a mano**
+(`referencia/etiquetado.xlsx`): siete de los trece documentos leídos por una
+persona, campo a campo, con una columna aparte para «esto el documento no lo
+dice». Una fila sólo cuenta si tiene el estado escrito; el resto conserva lo que
+propuso el sistema, y medirse contra eso sería darse la razón a uno mismo.
+
+Contra él, `medir.py` cuenta **cinco desenlaces por campo**, y los cinco son
+distintos a propósito:
+
+| desenlace | qué significa |
+|---|---|
+| acierto | el sistema dice lo mismo que la persona |
+| abstención correcta | el documento no lo dice y el sistema calla |
+| omisión | la persona lo leyó y el sistema no supo |
+| **ERROR** | los dos dicen algo y no es lo mismo |
+| **INVENCIÓN** | el documento no lo dice y el sistema lo afirma |
+
+Los dos en mayúsculas son los que le quitan autoridad al evaluador. Una omisión
+es una limitación declarada y se ve; un error y una invención se disfrazan de
+dato bueno.
+
+```
+python medir.py referencia/etiquetado.xlsx
+```
+
+| | 28/08 | 31/08 |
+|---|---|---|
+| Precisión de lo que afirma | 63,6 % | **76,9 %** |
+| Prudencia cuando no consta | 100 % | **100 %** |
+| Estado de vigencia acertado | 57,1 % | **83,3 %** |
+| Invenciones | 0 | **0** |
+
+La cifra que se defiende no es la primera: es la segunda. **Prudencia 100 %
+significa que el sistema no ha afirmado ni una sola vez un campo que el documento
+no dice.** Puede leer poco —y lo declara—, pero no rellena huecos.
+
+Quedan tres desacuerdos con el etiquetado, y son de **criterio**, no de lectura:
+en el contrato de ZURITA la persona anotó plazo «1 año» (el primer tramo de la
+escalera) y el sistema lee 10 (el segundo escalón); anotó prórroga «expresa» y el
+sistema dice «renunciada» citando la cláusula décimo primera; y en la renovación
+anotó 10 años donde el sistema lee 20. Se dejan a la vista sin resolver: un
+desacuerdo de criterio se cierra hablando, no ajustando el código hasta que la
+cifra suba.
+
+### Que el reconocimiento funcione, y no la caché
+
+El texto reconocido de los trece se guarda en un `.ocr.txt` para que la demo se
+pueda abrir sin esperar catorce minutos. Eso deja abierta una duda razonable:
+¿funciona el reconocimiento, o funciona la caché? `prueba_ocr_real.py` la cierra
+escondiendo los ficheros y obligando a reconocer desde el PDF:
+
+**13 de 13 reconocidos. 90 páginas en 706 s (7,8 s/página). Los mismos campos que
+por la caché en los trece, con un 99,7 % de coincidencia de texto.**
+
+Y una segunda pregunta, la que de verdad importa de cara a un documento nuevo:
+¿y si viene peor escaneado? `prueba_robustez_ocr.py` estropea tres documentos de
+siete formas —150 ppp, torcido 0,8° y 2°, desenfocado, guardado en JPEG como una
+foto de móvil, y 150 ppp más torcido—:
+
+**21 variantes degradadas. Cero invenciones.**
+
+El desenfoque y la compresión de móvil no le afectan; lo que le duele es la
+resolución baja. Y cuando pierde campos, lo declara: el contrato que a 300 ppp
+sale «vigente» con inicio y vencimiento leídos, a 150 ppp sale **«no
+clasificado»** — no «caducado». Se declara incapaz en vez de acusar, que es la
+propiedad que este bloque entero existe para sostener.
 
 ---
 
@@ -391,13 +502,29 @@ el módulo, sino en el contrato de la conexión.
 
 Detectar el fallo era la mitad; la otra es poder enseñar que se corrigió. El
 evaluador tiene memoria (`nucleo/historial.py`): guarda una instantánea por
-evaluación y compara con la anterior.
+evaluación y compara con la anterior. Así se lee la comparación:
 
 > Entre el 22/08/2026 y el 30/08/2026, 1 caso mejora: **caso 7 corregido — fallaba
 > y ahora se supera**. Métricas: tasa 80,0 → 100,0 (+20,0); fallidos 1 → 0.
 
 Separa mejoras de regresiones a propósito: un evaluador que sólo celebrase los
 avances sería complaciente.
+
+**Dos precisiones sobre el alcance de esto, para no venderlo por más de lo que
+es.** La primera: ese recuadro es **un ejemplo del formato**, no un registro
+guardado en el repositorio. El historial se escribe en `historial/`, que es una
+carpeta de sesión: en Streamlit Cloud el contenedor se reconstruye en cada
+despliegue y la memoria empieza de cero. Para que el bucle sea comprobable por un
+tercero haría falta persistirlo fuera del contenedor, y eso está en la
+documentación pendiente (§9), no hecho.
+
+La segunda: **el mecanismo está probado, el ciclo completo con un compañero no**.
+Comparar dos instantáneas se comprueba en `pruebas.py`; lo que falta es la vuelta
+entera —hallazgo → corrección del compañero → nueva medición— sobre un caso real.
+El candidato es la reexportación de Mencía con `is_active = 0`, que aún no ha
+llegado. Hasta entonces, lo que se puede afirmar es que el evaluador **sabe**
+comparar dos ejecuciones, no que ya haya cerrado un ciclo de mejora con otra
+persona.
 
 **Y el ciclo destapó un fallo propio.** Al simular la corrección de Mencía apareció
 que la verdad de campo derivaba las contradicciones sólo de los hechos *activos*:
@@ -464,7 +591,7 @@ Sale calculada del propio sistema: cada caso no ejercitado declara qué haría f
 ## 10 · Estado de comprobación
 
 ```
-python pruebas.py   →   344 comprobaciones en verde
+python pruebas.py   →   389 comprobaciones en verde
 ```
 
 No prueba los módulos de los compañeros: prueba el evaluador. Comprueba que la
