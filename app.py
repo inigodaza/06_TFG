@@ -57,10 +57,10 @@ if _sin_subir:
 import esquema
 import modulos
 import ui
-from demo import guion
-from modulos import similitud, vigencia
+from demo import guion, hilo
+from modulos import contradicciones, similitud, vigencia
 from nucleo import VERSION
-from nucleo import asesor, historial, llm, plantilla
+from nucleo import asesor, autoridad, clasificacion, historial, llm, plantilla
 from nucleo import bateria as B_NUCLEO
 from nucleo import pdf as P
 from nucleo import veredicto as V
@@ -93,7 +93,8 @@ PIEZAS = [
                    "bloque_procedencia", "barra_bateria", "medidor",
                    "franja_sistema", "franja_cifras", "fila_medidores",
                    "diagnostico_modelos", "selector_modo_lectura",
-                   "tabla_documentos:extraer"]),
+                   "tabla_documentos:extraer", "panel_contradicciones",
+                   "panel_cambios"]),
     ("nucleo/bateria.py", B_NUCLEO, ["SEVERIDADES", "ORDEN_SEVERIDAD"]),
     ("nucleo/plantilla.py", plantilla, ["filas", "a_markdown", "severidad_de"]),
     ("nucleo/asesor.py", asesor, ["aconsejar", "verificar_anclaje"]),
@@ -104,6 +105,17 @@ PIEZAS = [
     ("modulos/vigencia.py", vigencia, ["conciliar_ids", "PRORROGAS",
                                        "SALIDA_IALERT_CRED", "SALIDA_IALERT_TODAS", "familia_de",
                                        "descartar_incoherentes", "FAMILIAS"]),
+    ("demo/hilo.py", hilo, ["PASOS", "HECHO", "REGLA",
+                            "estado_de_los_datos"]),
+    ("nucleo/autoridad.py", autoridad,
+     ["tiene_autoridad", "quien_manda_sobre", "cargar", "confirmada",
+      "categorias_confirmadas"]),
+    ("modulos/contradicciones.py · cadena", contradicciones,
+     ["comparar_estados", "evaluar:estado_previo"]),
+    ("nucleo/clasificacion.py", clasificacion,
+     ["anotar_tipos", "tipo_de", "resumen"]),
+    ("nucleo/llm.py · PDF y tipos", llm, ["leer_pdf",
+                                          "clasificar_con_llm"]),
     ("nucleo/pdf.py", P, ["hay_ocr", "texto_ocr", "integridad",
                           "idiomas_ocr"]),
     ("nucleo/llm.py · anclaje", llm, ["anclar", "fragmento_presente"]),
@@ -212,7 +224,8 @@ elif "spa" not in P.idiomas_ocr():
 # Navegación
 # ===========================================================================
 
-PANTALLAS = ["Evaluar un módulo", "Demo", "Esquema del sistema"]
+PANTALLAS = ["Evaluar un módulo", "El hilo", "Demo",
+             "Esquema del sistema"]
 
 with st.sidebar:
     st.markdown('<div class="eyebrow">TFG · Íñigo Daza</div>'
@@ -272,6 +285,82 @@ def pantalla_esquema():
 ICONO = {"ejecutado": ("p-bien", "✓", "Ejecutado"),
          "a_medias": ("p-acento", "◐", "A medias"),
          "no_operativo": ("p-espera", "◌", "No operativo")}
+
+
+def pantalla_hilo():
+    """
+    Una sola incongruencia recorriendo tres módulos.
+
+    La demo por módulos enseña cinco cosas seguidas y cada una se entiende sola.
+    Lo que no enseña es el sistema: que los cinco trabajos son partes de un mismo
+    recorrido y que el fallo de uno se convierte en el trabajo del siguiente.
+    Aquí se sigue un solo hecho —una cantidad que no cuadra— de principio a fin.
+    """
+    h = hilo.HECHO
+    st.markdown(
+        '<div class="hero"><div class="eyebrow">Un hecho, cuatro manos</div>'
+        f'<h1>El pedido {h["pedido"]}, de la discrepancia a la decisión</h1>'
+        '<div class="meta">La misma incongruencia recorriendo los módulos del '
+        'equipo. Cada paso dice quién lo hace, qué comprueba el evaluador y '
+        'hasta dónde llegan los datos que hay hoy.</div></div>',
+        unsafe_allow_html=True)
+
+    ui.fila_kpis([
+        ui.kpi("El pedido dice", f'{h["valor_cliente"]:,}'.replace(",", "."),
+               "ejemplares pedidos por el cliente"),
+        ui.kpi("La orden dice", f'{h["valor_orden"]:,}'.replace(",", "."),
+               "ejemplares a fabricar", acento=True),
+        ui.kpi("Diferencia",
+               f'{h["valor_orden"] - h["valor_cliente"]:,}'.replace(",", "."),
+               "libros que nadie ha pedido"),
+    ])
+
+    estado = hilo.estado_de_los_datos()
+    if not estado["hilo_completo"]:
+        ui.nota("<b>El hilo llega hasta donde llegan los datos.</b> Los pasos que "
+                "no se pueden ejecutar se enseñan con su motivo y con lo que "
+                "haría falta para cerrarlos. Un recorrido que fingiera el último "
+                "paso sería una demo más bonita y una demostración peor: lo que "
+                "se está demostrando es justamente que el sistema distingue lo "
+                "comprobado de lo supuesto.")
+
+    COLOR_FASE = {"OBSERVAR": "p-acento", "GOBERNAR": "p-neutro",
+                  "DECIDIR": "p-acento", "COMPROBAR": "p-bien"}
+    for paso in hilo.PASOS:
+        with st.container(border=True):
+            c1, c2 = st.columns([1, 5])
+            c1.markdown(
+                f'<div class="p {COLOR_FASE.get(paso["fase"], "p-neutro")}">'
+                f'{paso["fase"]}</div>', unsafe_allow_html=True)
+            c1.caption(f"paso {paso['n']}")
+            c2.markdown(f"### {paso['titulo']}")
+            c2.caption(f"{paso['responsable']}")
+
+            st.markdown(paso["que_pasa"])
+            st.markdown(f"**Quién lo dice.** {paso['quien_lo_dice']}")
+            st.markdown(f"**Qué hace el evaluador.** {paso['que_hace_el_evaluador']}")
+
+            if paso["estado"] == "parcial":
+                st.warning(f"**Este paso está a medias.** Falta {paso['requiere']}.")
+            elif paso.get("requiere"):
+                st.info(f"Pendiente: {paso['requiere']}.")
+
+    st.markdown("---")
+    st.markdown(f"### «{hilo.REGLA}»")
+    st.caption("La regla del flujo que dibujó el equipo. Las tres palabras son "
+               "tres módulos distintos, y la última es este bloque.")
+
+    with st.expander("Qué datos hay hoy para recorrer el hilo"):
+        st.markdown(
+            f"- Documentos del pedido {h['pedido']}: "
+            f"**{', '.join(estado['documentos_del_pedido']) or 'ninguno en el repositorio'}** "
+            f"(son documentación de cliente y no se versionan)\n"
+            f"- Matriz de autoridad de Pablo: "
+            f"**{'cargada' if estado['ontologia'] else 'no está'}**\n"
+            f"- Exportaciones de Mencía: "
+            f"**{', '.join(estado['exportaciones']) or 'ninguna'}**\n"
+            f"- Para este pedido en concreto: "
+            f"**{', '.join(estado['exportacion_del_pedido']) or 'ninguna todavía'}**")
 
 
 def pantalla_demo():
@@ -614,6 +703,11 @@ def flujo_vigencia(rama):
     modo = ui.selector_modo_lectura(ficha, "vigencia")
 
     docs = subir_documentos(ficha, "vigencia", carpeta_demo="vigencia")
+    docs, avisos_tipo = clasificacion.anotar_tipos(
+        docs, rama.clasificar, rama.TIPOS, modo,
+        permiso=llm.permiso_de(ficha))
+    for _a in avisos_tipo:
+        st.info(_a)
     ui.tabla_documentos(docs, rama.TIPOS, rama.clasificar, rama.extraer)
 
     c1, c2 = st.columns(2)
@@ -836,6 +930,17 @@ def flujo_auditoria(rama):
     modo = ui.selector_modo_lectura(ficha, "auditoria")
 
     docs = subir_documentos(ficha, "auditoria", carpeta_demo="auditoria")
+
+    # De qué tipo es cada documento, y quién lo ha decidido. En modo
+    # asistido, lo que la regla no reconoce se le pregunta al modelo —y
+    # sólo eso—. Va antes que nada porque la rama entera depende del tipo:
+    # un documento sin identificar no entra en la comparación, y hasta
+    # ahora eso ocurría en silencio.
+    docs, avisos_tipo = clasificacion.anotar_tipos(
+        docs, rama.clasificar, rama.TIPOS, modo,
+        permiso=llm.permiso_de(ficha))
+    for _a in avisos_tipo:
+        st.info(_a)
     ui.tabla_documentos(docs, rama.TIPOS, rama.clasificar)
 
     try:
@@ -1111,7 +1216,8 @@ def flujo_similitud(rama):
     if not evaluar_pulsado("similitud"):
         st.stop()
 
-    ev = rama.evaluar(esperados, ctx, repeticion)
+    ev = rama.evaluar(esperados, ctx, repeticion,
+                      estado_previo=estado_previo)
     er = V.evaluation_result(ficha, ev, rama.sujeto(ctx))
     ui.bloque_contraste(ficha, ev)
     ui.bloque_hallazgos(ev)
@@ -1168,15 +1274,16 @@ def flujo_contradicciones(rama):
 
     esperados, ctx = rama.verdad_de_campo(datos)
 
-    st.markdown("**Hechos extraídos y su estado**")
-    st.caption("El estado de cada hecho es lo que decide el caso 7: después de una "
-               "validación humana, el valor descartado debería distinguirse del "
-               "confirmado.")
-    st.dataframe(pd.DataFrame([{
-        "#": h["id"], "Documento": h["documento"], "Campo": h["campo"],
-        "Etiqueta en el documento": h["etiqueta"], "Valor": h["valor"],
-        "Activo": "sí" if h["activo"] else "no"} for h in datos["hechos"]]),
-        use_container_width=True, hide_index=True)
+    ui.panel_contradicciones(datos, esperados, ctx)
+
+    with st.expander("Todos los hechos extraídos, tal cual vienen"):
+        st.caption("La tabla completa, por si hace falta comprobar un hecho que no "
+                   "entra en ninguna contradicción.")
+        st.dataframe(pd.DataFrame([{
+            "#": h["id"], "Documento": h["documento"], "Campo": h["campo"],
+            "Etiqueta en el documento": h["etiqueta"], "Valor": h["valor"],
+            "Activo": "sí" if h["activo"] else "no"} for h in datos["hechos"]]),
+            use_container_width=True, hide_index=True)
 
     ui.fila_kpis([
         ui.kpi("Hechos activos", ctx["hechos_activos"],
@@ -1190,7 +1297,24 @@ def flujo_contradicciones(rama):
                "con rastro registrado"),
     ])
 
-    st.subheader("2 · Segunda ejecución · repetibilidad (opcional)")
+    st.subheader("2 · El estado anterior · la decisión en el tiempo")
+    ui.nota("Este módulo no es un lector: registra <b>decisiones humanas</b> y "
+            "promete conservarlas. Una promesa sobre el tiempo no se comprueba con "
+            "una sola foto. Sube aquí la exportación del <b>mismo pedido tomada "
+            "antes</b> de que alguien resolviera, y el evaluador podrá ver tres "
+            "cosas que de una en una son invisibles: lo que cambió, lo que "
+            "<b>no debía</b> cambiar, y lo que se perdió por el camino.")
+    subido0 = st.file_uploader("Exportación anterior (antes de resolver)",
+                               type="json", key="up0_contradicciones")
+    estado_previo = None
+    if subido0:
+        estado_previo, avisos0 = rama.interpretar(subido0.getvalue().decode("utf-8"))
+        for a in avisos0:
+            st.warning(f"Exportación anterior: {a}")
+        if estado_previo:
+            ui.panel_cambios(estado_previo, datos, rama.comparar_estados)
+
+    st.subheader("3 · Segunda ejecución · repetibilidad (opcional)")
     st.caption("Vuelve a exportar el mismo pedido sin cambiar nada. El módulo emite "
                "una huella por contradicción, así que la comparación es inmediata.")
     subido2 = st.file_uploader("Segunda exportación", type="json",
@@ -1201,11 +1325,12 @@ def flujo_contradicciones(rama):
         for a in avisos2:
             st.warning(f"Segunda exportación: {a}")
 
-    st.subheader("3 · Evaluación")
+    st.subheader("4 · Evaluación")
     if not evaluar_pulsado("contradicciones"):
         st.stop()
 
-    ev = rama.evaluar(esperados, ctx, repeticion)
+    ev = rama.evaluar(esperados, ctx, repeticion,
+                      estado_previo=estado_previo)
     er = V.evaluation_result(ficha, ev, rama.sujeto(ctx))
     ui.bloque_contraste(ficha, ev)
     ui.bloque_hallazgos(ev)
@@ -1246,6 +1371,8 @@ def pantalla_evaluar():
 
 if pantalla == "Esquema del sistema":
     pantalla_esquema()
+elif pantalla == "El hilo":
+    pantalla_hilo()
 elif pantalla == "Demo":
     pantalla_demo()
 else:

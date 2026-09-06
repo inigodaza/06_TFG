@@ -173,8 +173,18 @@ def leer_sistema(nombres, modo="determinista"):
 
 
 def comparar(ref, sis):
-    """Los cinco desenlaces, por campo."""
+    """
+    Los cinco desenlaces, por campo — más uno que no es un desenlace.
+
+    «sin anclar» es el valor que el modelo ha leído del PDF sobre un documento
+    del que no hay texto contra el que comprobar la cita. No es un acierto ni un
+    error: es una lectura que el evaluador no puede sostener, y contarla en
+    cualquiera de los dos lados falsearía la medida. Se cuenta aparte y se enseña,
+    porque cuántos hay dice algo sobre el estado del corpus.
+    """
     out = []
+    sin_anclar = set(((sis or {}).get("campos") or {}).get(
+        "sin_anclaje_verificable") or {})
     for col, campo, tipo in CAMPOS:
         esperado = ref[col]
         no_consta = col in ref["no_consta"]
@@ -192,7 +202,9 @@ def comparar(ref, sis):
             if obtenido == "no consta":
                 obtenido = None
 
-        if no_consta:
+        if campo in sin_anclar and obtenido is not None:
+            desenlace = "sin anclar"
+        elif no_consta:
             desenlace = "abstención correcta" if obtenido is None else "INVENCIÓN"
         elif esperado is None:
             desenlace = "sin etiquetar"
@@ -215,7 +227,7 @@ def medir(ruta, modo="determinista"):
     sistema, _ = leer_sistema([r["documento"] for r in ref], modo)
 
     ORDEN = ["acierto", "abstención correcta", "omisión", "ERROR", "INVENCIÓN",
-             "sin etiquetar"]
+             "sin anclar", "sin etiquetar"]
     por_campo, por_desenlace, detalle = {}, dict.fromkeys(ORDEN, 0), []
     estados_ok = estados_no = 0
 
@@ -260,6 +272,10 @@ def medir(ruta, modo="determinista"):
               f"{100*por_desenlace['abstención correcta']/callados:5.1f} %  "
               f"({por_desenlace['abstención correcta']} de {callados} campos que el "
               f"documento no dice)")
+    if por_desenlace["sin anclar"]:
+        print(f"  Sin anclaje verificable      "
+              f"{por_desenlace['sin anclar']:5}    campos leídos del PDF que no se "
+              f"pueden\n{'':31}comprobar: no cuentan ni a favor ni en contra")
     if estados_ok + estados_no:
         print(f"  Estado de vigencia          "
               f"{100*estados_ok/(estados_ok+estados_no):5.1f} %  "

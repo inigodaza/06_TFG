@@ -100,9 +100,9 @@ Cuatro módulos con batería cerrada y ejecutada contra salida real del compañe
 | Auditoría de pedidos | Juan Salas · GraphyCems | C8 · **probada** | 9 | Caso demostrado, se mantiene |
 | Vigencia documental | Martín de Lucas · RALSA | C1 · **probada** | 12 | Cerrado y ejecutado sobre documentos y salidas reales |
 | Similitud de proyectos | Álvaro Subias · Kelvion | C7 · documentada | 11 | Cerrado y ejecutado |
-| Contradicciones y validación humana | Mencía Viñuelas · GraphyCems | C6 · documentada | 10 | Cerrado y ejecutado |
+| Contradicciones y validación humana | Mencía Viñuelas · GraphyCems | C6 · documentada | 13 | Cerrado y ejecutado; 3 casos nuevos de cadena de validación |
 
-**42 casos diseñados. 13 criterios cualitativos.**
+**45 casos diseñados. 13 criterios cualitativos.**
 
 ### Una desviación respecto del encargo, y por qué
 
@@ -591,7 +591,8 @@ Sale calculada del propio sistema: cada caso no ejercitado declara qué haría f
 ## 10 · Estado de comprobación
 
 ```
-python pruebas.py   →   389 comprobaciones en verde
+python pruebas.py                →  518 comprobaciones en verde
+python prueba_generalizacion.py  →   38 comprobaciones en verde
 ```
 
 No prueba los módulos de los compañeros: prueba el evaluador. Comprueba que la

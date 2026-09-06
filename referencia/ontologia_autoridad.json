@@ -1,0 +1,64 @@
+{
+  "fuente": "Pablo Morillas · Matriz de Autoridad Jerárquica (GraphyCems)",
+  "fecha_recibida": "2026-09-02",
+  "formato_original": "página HTML entregada por el propio Pablo (Ontologia_Validacion_Graphycens.html). Este JSON es la transcripción literal de esa página: los ocho roles, sus niveles, sus áreas y el texto de «manda_sobre» están copiados sin reinterpretar. Origen confirmado por el autor.",
+  "lo_que_esta_matriz_no_dice": "Qué ámbito gobierna cada CAMPO de un pedido (cantidad, fecha de entrega, precio, plazo de pago…). La matriz va de rol a área; el módulo de Mencía va de contradicción a categoría; la pieza que une campo con área no está en ninguno de los dos y sigue pendiente de Pablo.",
+  "roles": [
+    {
+      "rol": "CEO / Dirección General",
+      "nivel": 1,
+      "area": "Dirección general",
+      "tipo_de_autoridad": "👑 Autoridad Global",
+      "manda_sobre": "Manda sobre la totalidad de las decisiones estratégicas de Producción, Comercial y Financiera respecto al resto de directores."
+    },
+    {
+      "rol": "IT / Tecnología",
+      "nivel": 1,
+      "area": "Dirección general",
+      "tipo_de_autoridad": "⚙️ Autoridad Técnica",
+      "manda_sobre": "Manda de forma exclusiva sobre la infraestructura tecnológica, los servidores y el sistema."
+    },
+    {
+      "rol": "Dir. Producción",
+      "nivel": 2,
+      "area": "Área de Producción",
+      "tipo_de_autoridad": "👑 Manda en Producción",
+      "manda_sobre": "Tiene la máxima autoridad sobre los procesos de planta, operativa y fechas de entrega respecto al resto de departamentos."
+    },
+    {
+      "rol": "Encargados de Turno",
+      "nivel": 3,
+      "area": "Área de Producción",
+      "tipo_de_autoridad": "🏭 Mando en Planta",
+      "manda_sobre": "Mandan sobre la operativa directa de su turno de trabajo, bajo las directrices del Director de Producción."
+    },
+    {
+      "rol": "Dir. Comercial",
+      "nivel": 2,
+      "area": "Área Comercial",
+      "tipo_de_autoridad": "👑 Manda en Comercial",
+      "manda_sobre": "Tiene la máxima autoridad sobre las estrategias de venta, ofertas y cuentas de clientes respecto al resto de departamentos."
+    },
+    {
+      "rol": "Admin. Comerciales",
+      "nivel": 3,
+      "area": "Área Comercial",
+      "tipo_de_autoridad": "💼 Mando Administrativo",
+      "manda_sobre": "Mandan sobre la gestión de clientes y pedidos de producción, bajo las directrices del Director Comercial."
+    },
+    {
+      "rol": "Dir. Financiera",
+      "nivel": 2,
+      "area": "Área Financiera",
+      "tipo_de_autoridad": "👑 Manda en Finanzas",
+      "manda_sobre": "Tiene la máxima autoridad sobre los presupuestos, cuentas e informes económicos respecto al resto de departamentos."
+    },
+    {
+      "rol": "Admin. Financieros",
+      "nivel": 3,
+      "area": "Área Financiera",
+      "tipo_de_autoridad": "📊 Mando Contable",
+      "manda_sobre": "Mandan sobre la facturación y la contabilidad diaria, bajo las directrices del Director Financiero."
+    }
+  ]
+}

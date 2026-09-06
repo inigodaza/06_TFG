@@ -546,7 +546,13 @@ def tabla_documentos(docs, tipos, clasificar, extraer=None):
     """
     def _tipo_de(d):
         legible = d.get("legible", d.get("capa"))
-        return tipos.get(clasificar(d["texto"]) if legible else "sin_texto", "—")
+        from nucleo.clasificacion import tipo_de
+        etiqueta = tipos.get(tipo_de(d, clasificar) if legible else "sin_texto", "—")
+        # Si lo ha puesto el modelo, se dice. Un tipo decidido por el modelo y
+        # uno decidido por la regla no valen lo mismo, y quien lea el veredicto
+        # tiene derecho a distinguirlos de un vistazo.
+        return etiqueta + ("  · según el modelo" if d.get("tipo_via") == "modelo"
+                           else "")
 
     # Sin extractor de campos —la rama de auditoría no tiene ninguno— este panel
     # sólo puede decir por dónde ha entrado cada documento, y para eso una tabla
@@ -681,6 +687,180 @@ def tabla_documentos(docs, tipos, clasificar, extraer=None):
                            f"{len(d['texto']):,} caracteres.".replace(",", "."))
 
 
+def panel_contradicciones(datos, esperados, ctx):
+    """
+    Una contradicción por bloque, con los dos hechos enfrentados.
+
+    Nace de una queja justa de Íñigo: «lo de los archivos JSON no me gusta, me
+    parece mucho menos visual». Tenía razón a medias. La exportación nunca se
+    enseña —se elige de un desplegable y la app pinta tablas—, pero una tabla de
+    hechos con una columna «Activo: sí / sí» esconde justo lo que hay que ver.
+
+    Aquí se ve. Los dos documentos dicen cosas distintas sobre el mismo campo, uno
+    al lado del otro, con el fragmento que lo sostiene y quién decidió. Y el fallo
+    del caso 7 —el valor descartado sigue vivo después de que una persona eligiera
+    el otro— deja de ser una fila y pasa a ser una pastilla roja debajo de la
+    decisión que debería haberlo apagado.
+
+    Es el mismo movimiento que el panel por documento de la rama de vigencia: el
+    sistema no enseña lo que ha recibido, enseña **lo que ha entendido**.
+    """
+    if not esperados:
+        st.info("Ningún campo tiene dos documentos que digan cosas distintas: "
+                "no hay contradicción que derivar de estos hechos.")
+        return
+
+    por_id = {h["id"]: h for h in datos["hechos"]}
+    emitidas = {}
+    for c in datos["contradicciones"]:
+        emitidas[frozenset({c["hecho_a"], c["hecho_b"]})] = c
+
+    st.markdown("**Qué ha encontrado el evaluador por su cuenta**")
+    st.caption("Un bloque por contradicción, derivada de los hechos **sin mirar** "
+               "la tabla que emite el módulo. Sólo después se compara.")
+
+    for e in esperados:
+        ids = sorted(e["hechos"])
+        hechos = [por_id.get(i, {}) for i in ids]
+        emitida = emitidas.get(frozenset(e["hechos"]))
+        resol = (emitida or {}).get("resolucion")
+
+        cabecera = f"{e['campo']}  ·  {' vs '.join(str(v) for v in e['valores'])}"
+        with st.expander(cabecera, expanded=True):
+            fila_kpis([
+                kpi("¿La ve el módulo?", "Sí" if emitida else "NO",
+                    "se compara por los hechos que señala, no por el campo",
+                    acento=not emitida),
+                kpi("Severidad declarada",
+                    (emitida or {}).get("severidad") or "—",
+                    (emitida or {}).get("metodo") or "sin método declarado"),
+                kpi("¿Ha decidido alguien?", "Sí" if resol else "No",
+                    (resol or {}).get("revisor") or "sin revisión registrada"),
+            ])
+
+            cols = st.columns(len(hechos))
+            for col, h in zip(cols, hechos):
+                gana = bool(resol) and _mismo_texto(resol.get("valor"), h.get("valor"))
+                if resol:
+                    etiqueta = "Confirmado" if gana else "Descartado"
+                    tono = "p-bien" if gana else "p-mal"
+                else:
+                    etiqueta, tono = "Sin decidir", "p-neutro"
+                col.markdown(
+                    f"<div class='p {tono}'>{'✓' if gana else '·'} {etiqueta}</div>",
+                    unsafe_allow_html=True)
+                col.markdown(f"**{h.get('valor')}**")
+                col.caption(f"{h.get('documento') or '—'}  ·  hecho #{h.get('id')}")
+                if h.get("etiqueta"):
+                    col.caption(f"«{h['etiqueta']}»")
+                col.markdown(
+                    f"Estado del hecho: **{'activo' if h.get('activo') else 'inactivo'}**")
+                if h.get("evidencia"):
+                    col.caption("Fragmento: " + str(h["evidencia"])[:220])
+
+            if resol:
+                st.caption(
+                    f"Decidido por **{resol.get('revisor') or 'sin identificar'}**"
+                    + (f" el {resol['momento']}" if resol.get("momento") else "")
+                    + f" · se queda con «{resol.get('valor')}»"
+                    + (" · rol identificado" if resol.get("revisor_rol_id")
+                       else " · **el rol no se identifica**: el rastro apunta a un "
+                            "cargo, no a una persona"))
+
+                # El caso 7, hecho visible. Es el único fallo abierto de esta rama
+                # y en la tabla de hechos no se ve: son dos «sí» en una columna.
+                vivos = [h for h in hechos
+                         if h.get("activo")
+                         and not _mismo_texto(resol.get("valor"), h.get("valor"))]
+                if vivos:
+                    st.error(
+                        "**El valor descartado sigue activo.** Una persona eligió "
+                        f"«{resol.get('valor')}», y «{vivos[0].get('valor')}» "
+                        "continúa marcado como vigente. Quien consulte los hechos "
+                        "del pedido recupera los dos sin saber cuál ganó, salvo "
+                        "que atraviese la tabla de resoluciones. Conservar el "
+                        "valor descartado es correcto; no marcarlo, no.")
+                else:
+                    st.success("El valor descartado queda marcado como tal: la "
+                               "consulta posterior recupera una sola verdad.")
+
+
+def _mismo_texto(a, b):
+    from nucleo.texto import plano
+    return plano(a) == plano(b) and a is not None
+
+
+def panel_cambios(antes, despues, comparar):
+    """
+    Qué ha pasado entre dos exportaciones del mismo pedido.
+
+    Tres columnas y en este orden, que no es casual: primero lo que cambió,
+    después **lo que no debía cambiar**, y al final lo que se perdió. La segunda
+    columna es la que nadie mira y la que decide si una decisión se puede
+    auditar dentro de seis meses: la resolución se pone ENCIMA de la evidencia,
+    nunca en su lugar.
+    """
+    c = comparar(antes, despues)
+
+    st.markdown("**Qué ha cambiado entre las dos exportaciones**")
+
+    perdidas = c["resoluciones_retiradas"] + [x["contradiccion"]
+                                              for x in c["detalle_cambios"]]
+    intactos = (c["hechos_alterados"] + c["hechos_desaparecidos"]
+                + c["contradicciones_alteradas"]
+                + c["contradicciones_desaparecidas"])
+    fila_kpis([
+        kpi("Decisiones nuevas", len(c["resoluciones_nuevas"]),
+            "alguien ha resuelto", acento=bool(c["resoluciones_nuevas"])),
+        kpi("Evidencia tocada", len(intactos),
+            "hechos o contradicciones que han cambiado"),
+        kpi("Decisiones perdidas", len(perdidas),
+            "ya no aparecen en la exportación"),
+    ])
+
+    for i in c["resoluciones_nuevas"]:
+        st.success(f"**Contradicción {i}:** aparece una decisión que antes no "
+                   f"estaba. Eso es lo que tenía que pasar.")
+
+    for cambio in c["detalle_cambios"]:
+        a, d = cambio["antes"], cambio["despues"]
+        st.error(
+            f"**Contradicción {cambio['contradiccion']}: la decisión anterior ya "
+            f"no está.** Antes constaba «{a['revisor']}» con el valor "
+            f"«{a['valor']}»; ahora consta «{d['revisor']}» con «{d['valor']}», y "
+            f"de la primera no queda rastro en la exportación. Conservar el valor "
+            f"descartado está bien; perder **quién había decidido antes** deja sin "
+            f"auditar la parte que más importa: que hubo un desacuerdo entre dos "
+            f"personas y cómo se resolvió.")
+
+    if c["hechos_desactivados"]:
+        st.success(f"Hechos que pasan a inactivos: {c['hechos_desactivados']}. El "
+                   f"valor descartado queda marcado como descartado, que es "
+                   f"exactamente la corrección que pedía el caso 7.")
+    if c["hechos_reactivados"]:
+        st.warning(f"Hechos que vuelven a activarse: {c['hechos_reactivados']}. "
+                   f"Conviene saber quién y por qué.")
+
+    if intactos:
+        st.error(
+            f"**La evidencia ha cambiado al resolver.** Hechos alterados: "
+            f"{c['hechos_alterados'] or '—'} · desaparecidos: "
+            f"{c['hechos_desaparecidos'] or '—'} · contradicciones alteradas: "
+            f"{c['contradicciones_alteradas'] or '—'} · desaparecidas: "
+            f"{c['contradicciones_desaparecidas'] or '—'}. Una decisión se pone "
+            f"encima de la evidencia, no en su lugar: si la evidencia se mueve, "
+            f"el veredicto se apoya en algo que ya no existe.")
+    else:
+        st.info("La evidencia no se ha movido: los mismos hechos con los mismos "
+                "valores y las mismas contradicciones detectadas. La decisión se "
+                "ha puesto encima, no en su lugar.")
+
+    if c["contradicciones_nuevas"]:
+        st.caption(f"Contradicciones que no estaban antes: "
+                   f"{c['contradicciones_nuevas']}. Puede ser un documento nuevo, "
+                   f"o el módulo detectando algo que antes se le pasó.")
+
+
 def editor(registros, rama, clave):
     """
     Enseña lo que el intérprete ha entendido y deja corregirlo antes de puntuar.
@@ -725,13 +905,20 @@ def bloque_procedencia(procedencias, modo):
     if modo == "determinista" or not procedencias:
         return
 
-    filas, descartes = [], []
+    filas, descartes, sin_anclar = [], [], []
     for documento, campos in sorted(procedencias.items()):
         for campo, origen in sorted(campos.items()):
             if origen.startswith("modelo (descartado"):
                 descartes.append({"Documento": documento, "Campo": campo,
                                   "Motivo del descarte": origen.split(": ", 1)[-1]
                                                               .rstrip(")")})
+            elif "sin anclaje verificable" in origen:
+                # Ni aceptado del todo ni descartado: leído del PDF sobre
+                # un documento del que no hay texto contra el que
+                # comprobar la cita. Se usa para leer y no puntúa contra
+                # el compañero, así que va en su propia lista.
+                sin_anclar.append({"Documento": documento, "Campo": campo,
+                                   "Lo ha puesto": origen})
             else:
                 filas.append({"Documento": documento, "Campo": campo,
                               "Lo ha puesto": origen})
@@ -748,7 +935,21 @@ def bloque_procedencia(procedencias, modo):
             kpi("Datos por modelo", del_modelo, "leídos por el modelo",
                 acento=bool(del_modelo)),
             kpi("Descartados", len(descartes), "no han superado un control"),
+            kpi("Sin anclaje verificable", len(sin_anclar),
+                "no puntúan contra el módulo", acento=bool(sin_anclar)),
         ])
+        if sin_anclar:
+            st.warning(
+                f"**{len(sin_anclar)} valor(es) leídos del PDF que no se "
+                f"han podido comprobar.** El modelo ha leído estas páginas "
+                f"por su cuenta y del documento no hay texto reconocido "
+                f"contra el que verificar la cita. No falta la cita: falta "
+                f"el patrón contra el que medirla. Se usan para leer el "
+                f"documento y **no puntúan contra el módulo** — aceptarlos "
+                f"como verificados sería llamar comprobado a lo que nadie "
+                f"ha comprobado.")
+            st.dataframe(pd.DataFrame(sin_anclar),
+                         use_container_width=True, hide_index=True)
         if descartes:
             # Tres controles distintos, y conviene no confundirlos al leerlos: el
             # primero mira la forma del dato, el segundo si el documento lo dice y

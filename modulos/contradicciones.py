@@ -59,11 +59,19 @@ CASOS = {
     8: "Aviso de documento no agrupable por pérdida del identificador",
     9: "Distinción entre ausencia de contradicciones e imposibilidad de comprobar",
     10: "Repetibilidad del resultado entre ejecuciones",
+    11: "La validación la hace quien tiene autoridad sobre la categoría",
+    12: "El rastro de una decisión sobrevive a la decisión siguiente",
+    13: "Resolver no altera los hechos ni las contradicciones ya detectadas",
 }
 
 ORIGEN = {n: "acuerdo de conexión" for n in CASOS}
 ORIGEN[9] = "criterio transversal del evaluador"
 ORIGEN[10] = "criterio transversal del evaluador"
+# El primero del sistema que no se puede comprobar mirando un solo módulo: las
+# validaciones las emite Mencía y el organigrama lo declara Pablo.
+ORIGEN[11] = "cruce de C6 (Mencía) con la ontología de autoridad (Pablo)"
+ORIGEN[12] = "criterio transversal del evaluador"
+ORIGEN[13] = "criterio transversal del evaluador"
 
 ALCANCE = {n: "ejecucion" for n in CASOS}
 
@@ -81,6 +89,9 @@ SEVERIDAD = {
     8: "critica",   # un documento fuera del grupo desaparece en silencio
     9: "critica",   # una salida vacía por ilegible se lee como pedido correcto
     10: "alta",     # sin repetibilidad ninguna medición anterior se sostiene
+    11: "critica",  # una validación sin autoridad viaja como si fuera firme
+    12: "alta",     # se pierde quién decidió antes y qué se revocó
+    13: "critica",  # si resolver toca la evidencia, el veredicto se apoya en humo
 }
 
 ASPECTOS = {
@@ -108,6 +119,26 @@ ASPECTOS = {
     9: ("No consta distinción entre ausencia de contradicciones e ilegibilidad",
         "Diferenciar ambas salidas: una salida vacía por documento ilegible llegaría "
         "a validación humana como señal de pedido correcto."),
+    11: ("Una validación puede cerrarse sin que conste que quien la hizo tenía "
+         "autoridad sobre ese ámbito",
+         "Emitir en la exportación el identificador de rol de quien resuelve "
+         "—`resolved_by_role_id` ya existe y viene a nulo— y la categoría de la "
+         "contradicción, que ya viaja. Con esos dos campos, cualquiera puede "
+         "comprobar contra el organigrama si la decisión la tomó quien podía. "
+         "Hoy el módulo lo sabe y lo enseña en pantalla, pero no lo publica: "
+         "desde fuera, una propuesta pendiente y una validación firme se ven "
+         "exactamente igual."),
+    12: ("Cuando alguien revoca una decisión anterior, la anterior desaparece",
+         "Conservar las decisiones anteriores en vez de actualizar la fila, o "
+         "publicar un campo que declare que hubo una previa y cuál era. El "
+         "documento del módulo dice en §2.1 que la tabla es mutable y en §6 que "
+         "«nada se sobrescribe»: hay que elegir una de las dos, porque la "
+         "auditoría posterior depende de cuál sea cierta."),
+    13: ("No consta que la evidencia quede intacta al resolver",
+         "Que dos exportaciones del mismo pedido, antes y después de una "
+         "resolución, devuelvan los mismos hechos y las mismas contradicciones. "
+         "La decisión se pone encima de la evidencia; si la evidencia cambia, el "
+         "veredicto se apoya en algo que ya no existe."),
     10: ("El determinismo del resultado no está demostrado",
          "Dos ejecuciones consecutivas sobre el mismo pedido, comparadas por campo, "
          "severidad y huella, no por el texto emitido. El módulo ya emite "
@@ -324,12 +355,28 @@ def interpretar(texto, modo="determinista"):
             "severidad": c.get("severity") or "",
             "metodo": c.get("detection_method") or "",
             "huella": c.get("fingerprint"),
+            # La categoría es lo que enlaza con el organigrama de Pablo: dice de
+            # qué ámbito es la contradicción y, por tanto, quién puede validarla.
+            # Venía en la exportación desde el principio y el intérprete la
+            # tiraba, así que el caso de autoridad no tenía con qué trabajar.
+            "categoria": c.get("categoria"),
             "resolucion": resoluciones.get(c.get("id")),
         })
 
     if not hechos:
         avisos.append("La exportación no trae hechos extraídos: sin ellos el "
                       "evaluador no puede recalcular nada por su cuenta.")
+    else:
+        _mancos = [h["id"] for h in hechos
+                   if not (h["campo"] or "").strip() or h["valor"] in (None, "")]
+        if _mancos:
+            avisos.append(
+                f"{len(_mancos)} hecho(s) llegan sin campo o sin valor "
+                f"(ids: {', '.join(str(i) for i in _mancos[:8])}"
+                f"{'…' if len(_mancos) > 8 else ''}). No pueden contradecir a "
+                f"nadie, así que quedan fuera del contraste: un hecho vacío que "
+                f"«coincide» con otro hecho vacío no es una comprobación "
+                f"superada, es una comprobación que no se ha hecho.")
 
     datos = {
         "grupo": grupo.get("group_key") or grupo.get("label"),
@@ -392,8 +439,23 @@ def verdad_de_campo(datos):
         if c.get("resolucion"):
             resueltos.update({c.get("hecho_a"), c.get("hecho_b")})
 
-    en_juego = [h for h in datos["hechos"]
-                if h["activo"] or h["id"] in resueltos]
+    # Un hecho sin campo o sin valor no puede contradecir a nadie.
+    #
+    # Parece una obviedad y no lo era: una exportación con dos hechos vacíos
+    # —sólo el `id`, sin `field_name` ni `value_text`— los agrupaba a los dos bajo
+    # el campo «» y, como sus valores coincidían (ninguno con ninguno), el caso 2
+    # daba **superado**: «un campo con varios documentos que coinciden y el módulo
+    # no levanta contradicción en ninguno».
+    #
+    # Es un aprobado sobre la nada, y es peor que un fallo: el módulo se lleva un
+    # caso superado sin que se haya comprobado nada suyo, y la tasa sube. Un
+    # evaluador que aprueba con la entrada vacía no está midiendo, está contando.
+    incompletos = [h for h in datos["hechos"]
+                   if not (h.get("campo") or "").strip()
+                   or h.get("valor") in (None, "")]
+    utiles = [h for h in datos["hechos"] if h not in incompletos]
+
+    en_juego = [h for h in utiles if h["activo"] or h["id"] in resueltos]
     por_campo = {}
     for h in en_juego:
         por_campo.setdefault(h["campo"], []).append(h)
@@ -426,6 +488,7 @@ def verdad_de_campo(datos):
     contexto = {
         "datos": datos,
         "pedido": datos["grupo"],
+        "hechos_incompletos": [h["id"] for h in incompletos],
         "campos_con_varios_documentos": sum(1 for hs in por_campo.values() if len(hs) >= 2),
         "campos_coincidentes": coincidentes,
         "hechos_activos": sum(1 for h in datos["hechos"] if h["activo"]),
@@ -466,7 +529,87 @@ def familia_metodo(metodo):
 # Batería
 # ---------------------------------------------------------------------------
 
-def evaluar(esperados, contexto, repeticion=None, modo_lectura="determinista"):
+def comparar_estados(antes, despues):
+    """
+    Qué ha pasado entre dos exportaciones del mismo pedido.
+
+    Por qué la unidad de evaluación de este módulo es la decisión
+    -------------------------------------------------------------
+    A un lector se le mide con una foto: se le dan documentos y se mira si lo que
+    dice coincide con lo que ponen. Este módulo no es un lector. Registra
+    **decisiones humanas** y promete conservarlas, y una promesa sobre el tiempo
+    no se puede comprobar con una sola foto.
+
+    Con dos exportaciones —antes y después de que alguien resuelva— se pueden
+    comprobar tres cosas que de una en una son invisibles:
+
+      · **Lo que ha cambiado.** Apareció una resolución, se desactivó un hecho.
+      · **Lo que NO debía cambiar.** Los hechos originales y las contradicciones
+        detectadas tienen que seguir diciendo lo mismo: la decisión se pone
+        encima, no encima de la evidencia.
+      · **Lo que se ha perdido.** Una decisión anterior que ya no está.
+
+    Lo tercero es lo que su propio documento no resuelve: en §2.1 dice que la
+    tabla de resoluciones es mutable y que hay como mucho una fila por
+    contradicción; en §6 dice que «nada se sobrescribe». Las dos cosas no pueden
+    ser ciertas a la vez, y con dos exportaciones delante no hay que discutirlo.
+
+    Devuelve un diccionario; no juzga. Juzgar es de los casos.
+    """
+    def por_id(coleccion):
+        return {c["id"]: c for c in coleccion if c.get("id") is not None}
+
+    ha, hd = por_id(antes["hechos"]), por_id(despues["hechos"])
+    ca, cd = por_id(antes["contradicciones"]), por_id(despues["contradicciones"])
+
+    def resoluciones(datos):
+        return {c["id"]: c.get("resolucion") for c in datos["contradicciones"]
+                if c.get("resolucion")}
+
+    ra, rd = resoluciones(antes), resoluciones(despues)
+
+    def firma_hecho(h):
+        return (h.get("campo"), h.get("valor"), h.get("documento"))
+
+    def firma_contra(c):
+        return (c.get("campo"), c.get("hecho_a"), c.get("hecho_b"),
+                c.get("severidad"))
+
+    def firma_resol(r):
+        return (r.get("tipo"), r.get("valor"), r.get("revisor"))
+
+    return {
+        # Lo que cambia y debe poder cambiar
+        "resoluciones_nuevas": sorted(set(rd) - set(ra)),
+        "resoluciones_retiradas": sorted(set(ra) - set(rd)),
+        "resoluciones_cambiadas": sorted(
+            i for i in set(ra) & set(rd) if firma_resol(ra[i]) != firma_resol(rd[i])),
+        "hechos_desactivados": sorted(i for i in set(ha) & set(hd)
+                                      if ha[i]["activo"] and not hd[i]["activo"]),
+        "hechos_reactivados": sorted(i for i in set(ha) & set(hd)
+                                     if not ha[i]["activo"] and hd[i]["activo"]),
+        # Lo que NO debería cambiar: la evidencia y lo detectado sobre ella
+        "hechos_alterados": sorted(i for i in set(ha) & set(hd)
+                                   if firma_hecho(ha[i]) != firma_hecho(hd[i])),
+        "hechos_desaparecidos": sorted(set(ha) - set(hd)),
+        "contradicciones_alteradas": sorted(
+            i for i in set(ca) & set(cd) if firma_contra(ca[i]) != firma_contra(cd[i])),
+        "contradicciones_desaparecidas": sorted(set(ca) - set(cd)),
+        "contradicciones_nuevas": sorted(set(cd) - set(ca)),
+        # El detalle de cada resolución que cambia, para poder contarlo
+        "detalle_cambios": [
+            {"contradiccion": i,
+             "antes": {"revisor": ra[i].get("revisor"), "valor": ra[i].get("valor"),
+                       "tipo": ra[i].get("tipo"), "momento": ra[i].get("momento")},
+             "despues": {"revisor": rd[i].get("revisor"), "valor": rd[i].get("valor"),
+                         "tipo": rd[i].get("tipo"), "momento": rd[i].get("momento")}}
+            for i in sorted(set(ra) & set(rd))
+            if firma_resol(ra[i]) != firma_resol(rd[i])],
+    }
+
+
+def evaluar(esperados, contexto, repeticion=None, modo_lectura="determinista",
+            estado_previo=None):
     datos = contexto["datos"]
     reportadas = datos["contradicciones"]
     hechos = {h["id"]: h for h in datos["hechos"]}
@@ -700,6 +843,150 @@ def evaluar(esperados, contexto, repeticion=None, modo_lectura="determinista"):
              if antes == ahora else
              f"Difieren entre ejecuciones: {sorted(antes ^ ahora)}."))
 
+    # 11 — ¿validó quien tenía autoridad?     [cruce con la ontología de Pablo]
+    #
+    # El primer caso del sistema que no se puede comprobar mirando un solo
+    # módulo. Mencía emite quién validó y de qué categoría era la contradicción;
+    # Pablo declara quién manda sobre cada área. Ninguno de los dos puede
+    # contestar solo, y el evaluador tiene los dos delante.
+    from nucleo import autoridad as AUT
+    onto = AUT.cargar()
+    if not resueltas:
+        casos[11] = B.caso(
+            False, "Ninguna contradicción de esta exportación está resuelta, así "
+                   "que no hay ninguna validación cuya autoridad comprobar.",
+            omitir=True,
+            requiere="una exportación con al menos una contradicción resuelta")
+    elif not onto:
+        casos[11] = B.caso(
+            False, "No hay organigrama de autoridad cargado.", omitir=True,
+            requiere=("la matriz de autoridad de Pablo en "
+                      "`referencia/ontologia_autoridad.json`"))
+    else:
+        veredictos = []
+        for r in resueltas:
+            cat = r.get("categoria")
+            quien = (r["resolucion"] or {}).get("revisor")
+            v, motivo = AUT.tiene_autoridad(quien, cat, onto)
+            veredictos.append({"campo": r["campo"], "revisor": quien,
+                               "categoria": cat, "podia": v, "motivo": motivo})
+        sin_autoridad = [v for v in veredictos if v["podia"] is False]
+        no_comprobables = [v for v in veredictos if v["podia"] is None]
+        confirmada = AUT.confirmada(onto)
+
+        detalle = "; ".join(
+            f"{v['campo']}: {v['revisor']} sobre «{v['categoria']}» — {v['motivo']}"
+            for v in veredictos)
+
+        categorias_ok = AUT.categorias_confirmadas()
+
+        if not sin_autoridad and not no_comprobables:
+            # Todas las validaciones las hizo quien podía. Si alguna de las dos
+            # piezas del cruce sigue sin firmar, el caso pasa pero lo declara: un
+            # aprobado que se apoya en un mapa sin firmar es un aprobado con
+            # asterisco, y el asterisco se escribe.
+            asterisco = ""
+            if not confirmada:
+                asterisco = (" (El organigrama lo ha extraído el evaluador de una "
+                             "lámina y está pendiente de que Pablo lo confirme.)")
+            elif not categorias_ok:
+                asterisco = (" (El organigrama es de Pablo, pero la correspondencia "
+                             "entre las categorías de Mencía y sus áreas la ha "
+                             "supuesto el evaluador.)")
+            casos[11] = B.caso(
+                True,
+                f"Las {len(veredictos)} validación(es) las hizo quien manda sobre "
+                f"su área. {detalle}" + asterisco)
+        elif no_comprobables and not sin_autoridad:
+            casos[11] = B.caso(
+                False,
+                f"No se puede comprobar la autoridad de "
+                f"{len(no_comprobables)} de {len(veredictos)} validación(es). "
+                f"{detalle}",
+                omitir=True,
+                requiere=("que la exportación identifique el rol de quien resuelve "
+                          "—`resolved_by_role_id` existe y viene a nulo— o que el "
+                          "organigrama cubra los roles que aparecen"))
+        elif not confirmada:
+            # No se puede fallar a nadie con un mapa que su autor no ha firmado.
+            casos[11] = B.caso(
+                False,
+                f"{len(sin_autoridad)} de {len(veredictos)} validación(es) las "
+                f"hizo alguien que, según el organigrama, no manda sobre esa "
+                f"área. {detalle}. **No se cuenta como fallo**: el organigrama lo "
+                f"ha extraído el evaluador de una lámina y Pablo todavía no lo ha "
+                f"confirmado, así que el desacuerdo puede estar en mi lectura.",
+                omitir=True,
+                requiere=("que Pablo confirme la matriz de autoridad; hasta "
+                          "entonces el cruce se declara pero no puntúa"))
+        elif not categorias_ok:
+            # El organigrama sí lo firma Pablo. Lo que no firma nadie es de qué
+            # área es cada categoría, y el veredicto depende entero de eso: con
+            # `cantidad_pedida` en Producción sale un culpable y en Comercial sale
+            # otro. Se declara el desacuerdo y no se le cuenta a Mencía.
+            casos[11] = B.caso(
+                False,
+                f"{len(sin_autoridad)} de {len(veredictos)} validación(es) las "
+                f"hizo alguien que, según el organigrama de Pablo, no manda sobre "
+                f"esa área. {detalle}. **No se cuenta como fallo**: la matriz es "
+                f"suya y responde de ella, pero el paso intermedio —de qué área es "
+                f"cada categoría— lo he supuesto yo, y el veredicto depende entero "
+                f"de ese paso.",
+                omitir=True,
+                requiere=("el mapa campo/categoría → ámbito, escrito por Pablo. "
+                          "Sin él el cruce se declara pero no puntúa"))
+        else:
+            casos[11] = B.caso(
+                False,
+                f"{len(sin_autoridad)} de {len(veredictos)} validación(es) las "
+                f"cerró alguien sin autoridad sobre esa área. {detalle}")
+
+    # 12 y 13 — sólo se pueden ver con dos exportaciones del mismo pedido
+    if estado_previo is None:
+        pendiente = B.caso(
+            False,
+            "Sólo se ha aportado una exportación. Este módulo registra decisiones "
+            "humanas y promete conservarlas, y una promesa sobre el tiempo no se "
+            "comprueba con una sola foto: hacen falta dos, antes y después de que "
+            "alguien resuelva.",
+            omitir=True,
+            requiere=("una exportación del mismo pedido tomada ANTES de resolver "
+                      "la contradicción, y otra tomada DESPUÉS"))
+        casos[12] = pendiente
+        casos[13] = dict(pendiente)
+    else:
+        cambios = comparar_estados(estado_previo, datos)
+
+        perdidas = cambios["resoluciones_retiradas"]
+        revocadas = cambios["detalle_cambios"]
+        casos[12] = B.caso(
+            not perdidas and not revocadas,
+            ("Entre las dos exportaciones no se ha perdido ninguna decisión "
+             "anterior." if not perdidas and not revocadas else
+             (f"Desaparecen las resoluciones de {perdidas}. " if perdidas else "")
+             + "".join(
+                 f"La decisión de «{c['antes']['revisor']}» ({c['antes']['valor']}) "
+                 f"la sustituye la de «{c['despues']['revisor']}» "
+                 f"({c['despues']['valor']}) y la primera ya no aparece en la "
+                 f"exportación: quien audite esto después no sabrá que hubo una "
+                 f"decisión previa ni de quién. "
+                 for c in revocadas)))
+
+        tocados = (cambios["hechos_alterados"] + cambios["hechos_desaparecidos"]
+                   + cambios["contradicciones_alteradas"]
+                   + cambios["contradicciones_desaparecidas"])
+        casos[13] = B.caso(
+            not tocados,
+            ("Resolver no ha tocado la evidencia: los mismos hechos con los mismos "
+             "valores y las mismas contradicciones detectadas, antes y después."
+             if not tocados else
+             f"Al resolver cambia la evidencia. Hechos alterados: "
+             f"{cambios['hechos_alterados']}; hechos que desaparecen: "
+             f"{cambios['hechos_desaparecidos']}; contradicciones alteradas: "
+             f"{cambios['contradicciones_alteradas']}; contradicciones que "
+             f"desaparecen: {cambios['contradicciones_desaparecidas']}. La "
+             f"decisión se pone encima de la evidencia, no en su lugar."))
+
     # --- hallazgos de cobertura -------------------------------------------
     if resueltas and all(r["resolucion"].get("revisor_rol_id") is None
                          for r in resueltas):
@@ -744,7 +1031,7 @@ def evaluar(esperados, contexto, repeticion=None, modo_lectura="determinista"):
             "la situación."))
 
     # --- Desglose esperado / observado para la plantilla común -------------
-    # No decide nada: los diez casos ya están resueltos. Sólo separa en dos
+    # No decide nada: los trece casos ya están resueltos. Sólo separa en dos
     # columnas lo que la observación contaba fundido en un párrafo.
     def _l(xs, vacio="ninguno"):
         xs = [str(x) for x in xs if x]
@@ -801,6 +1088,17 @@ def evaluar(esperados, contexto, repeticion=None, modo_lectura="determinista"):
         10: ("las mismas contradicciones, severidad y huella en dos ejecuciones",
              ("coinciden" if casos[10]["resultado"] == "pasa" else "difieren")
              if repeticion is not None else FALTA),
+        11: ("cada validación, hecha por quien manda sobre su categoría",
+             _l([f"{r['campo']} ({r.get('categoria') or 'sin categoría'}): "
+                 f"{r['resolucion']['revisor']}" for r in _res]) if _res else NADA),
+        12: ("ninguna decisión anterior desaparece al tomarse la siguiente",
+             FALTA if estado_previo is None else
+             ("ninguna se pierde" if casos[12]["resultado"] == "pasa"
+              else "se pierde al menos una")),
+        13: ("los mismos hechos y las mismas contradicciones antes y después",
+             FALTA if estado_previo is None else
+             ("la evidencia no se mueve" if casos[13]["resultado"] == "pasa"
+              else "la evidencia cambia al resolver")),
     }
     for _n, (_esp, _obs) in _d.items():
         if _n in casos:

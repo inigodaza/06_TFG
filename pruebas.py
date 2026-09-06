@@ -151,10 +151,45 @@ comprobar(ev5["contraste"]["precision"] < 100,
           "Un documento que no se entregó baja la precisión",
           str(ev5["contraste"]["precision"]))
 
+# Un documento sin registro tiene dos explicaciones —el módulo no lo cubre, o se
+# ha pegado sólo una parte de su salida— y el evaluador no puede distinguirlas.
+# Antes lo contaba como omisión del módulo, y sobre el corpus de Martín eso
+# acusaba a Martín de no cubrir siete documentos cuyas fichas Íñigo no había
+# pegado. No pasa el caso —eso no cambia— pero queda PENDIENTE y dice qué falta.
 incompleta = [r for r in perfecta if r["id_documento"] != "PRUEBA_3"]
 ev6 = vigencia.evaluar(esperados, incompleta, FECHA, contexto=ctx)
-comprobar(ev6["casos"][9]["resultado"] == "no_pasa",
-          "Dejar un documento sin clasificar no pasa el caso de cobertura")
+comprobar(ev6["casos"][9]["resultado"] != "pasa",
+          "Dejar un documento sin registro no pasa el caso de cobertura")
+comprobar(ev6["casos"][9]["resultado"] == "pendiente",
+          "…pero queda pendiente, no fallido: con la salida a la vista no puede "
+          "saberse si el módulo no lo cubre o si sólo se pegó una parte",
+          ev6["casos"][9]["resultado"])
+comprobar(bool(ev6["casos"][9].get("requiere")),
+          "…y declara qué haría falta para poder juzgarlo")
+
+# Lo que sí es un fallo del módulo, porque una salida a medias no puede causarlo:
+# un registro de un documento que no se entregó, o el mismo documento repetido.
+ev6b = vigencia.evaluar(esperados, inventada, FECHA, contexto=ctx)
+comprobar(ev6b["casos"][9]["resultado"] == "no_pasa",
+          "Un registro sobre un documento que no se entregó SÍ falla la "
+          "cobertura: pegar de menos no inventa documentos",
+          ev6b["casos"][9]["resultado"])
+# Se reconstruye la salida perfecta: `evaluar` concilia los identificadores y
+# deja tocados los registros que recibe, así que reutilizar la lista de arriba
+# haría que esta comprobación midiera otra cosa.
+# …y se repite un documento sobre el que el evaluador NO se abstiene: los
+# abstenidos salen del contraste entero —también sus registros—, así que
+# duplicar uno de ésos no duplicaría nada y la comprobación pasaría sin
+# comprobar. Es el mismo cuidado que hay que tener al elegir cualquier ejemplo:
+# un caso de prueba que el sistema descarta antes de mirarlo no prueba nada.
+_limpia = perfecta_de(esperados)
+_vivo = next(r for r in _limpia
+             if not next(e for e in esperados
+                         if e["id_documento"] == r["id_documento"]).get("abstiene"))
+ev6c = vigencia.evaluar(esperados, _limpia + [dict(_vivo)], FECHA, contexto=ctx)
+comprobar(ev6c["casos"][9]["resultado"] == "no_pasa",
+          "Un documento repetido también falla: pegar de menos tampoco duplica",
+          ev6c["casos"][9]["resultado"])
 
 ev8 = vigencia.evaluar(esperados, perfecta, FECHA, repeticion=alterada, contexto=ctx)
 comprobar(ev8["casos"][10]["resultado"] == "no_pasa",
@@ -499,13 +534,30 @@ comprobar(not L.esta_disponible(), "Sin clave, el componente se declara no dispo
 comprobar("Secrets" in (L.por_que_no() or ""),
           "…y dice dónde ponerla", str(L.por_que_no()))
 
+_PERMISO_OK = (True, "")
 try:
     # Con un hueco de verdad que rellenar: si no lo hubiera, el rescate ni se
-    # intenta y no haría falta clave.
-    L.resolver("asistido", {"a": None}, "texto", {"properties": {"a": {}}}, "prompt")
+    # intenta y no haría falta clave. Y con permiso concedido, para que lo que
+    # se esté probando aquí sea la falta de clave y no el veto.
+    L.resolver("asistido", {"a": None}, "texto", {"properties": {"a": {}}},
+               "prompt", permiso=_PERMISO_OK)
     comprobar(False, "Pedir el rescate sin clave tiene que fallar, no caer a reglas")
 except L.NoDisponible:
     comprobar(True, "Pedir el rescate sin clave levanta NoDisponible, no degrada solo")
+
+# El orden importa: el veto se comprueba ANTES que la disponibilidad. Que haya
+# clave no autoriza nada, y que no la haya no es la razón por la que una rama
+# vetada no puede leer.
+try:
+    L.resolver("asistido", {"a": None}, "texto", {"properties": {"a": {}}},
+               "prompt", permiso=(False, "datos de cliente"))
+    comprobar(False, "Una rama vetada tiene que detenerse")
+except L.Vetada as _e:
+    comprobar("cliente" in str(_e),
+              "El veto se comprueba antes que la clave, y explica su motivo")
+except L.NoDisponible:
+    comprobar(False, "El veto tiene que comprobarse ANTES que la disponibilidad: "
+                     "si no, el día que haya clave la rama vetada leería")
 
 campos, proc = L.resolver("determinista", {"a": 1, "b": None}, "t", {}, "p")
 comprobar(campos == {"a": 1, "b": None} and proc == {"a": "regla", "b": "regla"},
@@ -744,12 +796,18 @@ from modulos import contradicciones as CT
 # dos hechos activos de `fecha_entrega` —25/08/2026 en la confirmación y
 # 12/08/2026 en el pedido— dan UNA contradicción. El módulo la emite, la resuelve
 # validando el hecho A, y deja los DOS hechos con is_active = 1.
+# La batería creció de 10 a 13 casos el 02/09 con la cadena de validación: quién
+# valida, si tenía autoridad según el organigrama de Pablo, y qué sobrevive entre
+# dos exportaciones. Los tres nuevos salen PENDIENTES sobre una sola exportación
+# —hacen falta dos— y eso baja la cobertura sin que nadie haya empeorado: mide
+# cuánto de la batería se ha podido ejercitar, no cuánto se ha superado.
 ESPERADO_PED1004 = {
     "contradicciones": 1,
     "resultados": {1: "pasa", 2: "no_aplica", 3: "pendiente", 4: "pasa",
                    5: "pasa", 6: "pasa", 7: "no_pasa", 8: "no_aplica",
-                   9: "no_aplica", 10: "pendiente"},
-    "tasa": 80.0, "cobertura": 50.0,
+                   9: "no_aplica", 10: "pendiente",
+                   11: "pasa", 12: "pendiente", 13: "pendiente"},
+    "tasa": 83.3, "cobertura": 46.2,
 }
 
 _ruta = guion.RAIZ / "contradicciones" / "export_PED1004.json"
@@ -775,7 +833,8 @@ else:
     _rc = CT.B.resumen(_evc["casos"])
     comprobar(_rc["tasa"] == ESPERADO_PED1004["tasa"] and
               _rc["cobertura"] == ESPERADO_PED1004["cobertura"],
-              "Tasa 80% sobre 5 casos verificados y cobertura 50%", str(_rc))
+              f"Tasa {ESPERADO_PED1004['tasa']} % sobre 6 casos verificados "
+              f"y cobertura {ESPERADO_PED1004['cobertura']} %", str(_rc))
     comprobar(_evc["contraste"]["exhaustividad"] == 100.0 and
               _evc["contraste"]["precision"] == 100.0,
               "Exhaustividad y precisión al 100%: la única contradicción real es "
@@ -1104,8 +1163,10 @@ from nucleo import historial as H
 
 _er_ct = V.evaluation_result(CT.FICHA, _evc2, CT.sujeto(_cc))
 _snap1 = H.instantanea(CT.FICHA, _er_ct, _evc2, "antes de corregir")
-comprobar(_snap1["casos"]["7"] == "no_pasa" and _snap1["metricas"]["tasa"] == 80.0,
-          "La instantánea guarda el estado de cada caso y las métricas")
+comprobar(_snap1["casos"]["7"] == "no_pasa"
+          and _snap1["metricas"]["tasa"] == ESPERADO_PED1004["tasa"],
+          "La instantánea guarda el estado de cada caso y las métricas",
+          str(_snap1["metricas"]))
 comprobar("documento" not in json_mod.dumps(_snap1).lower()
           or "Pedido_PED1004" not in json_mod.dumps(_snap1),
           "…y no arrastra los datos del compañero, sólo el veredicto")
@@ -1769,7 +1830,7 @@ comprobar(not L.fragmento_presente("a 10 de Diciembre de 2017", _texto_doc)[0],
           "Una fecha falsa no cuela porque su año aparezca en otra cláusula: se "
           "exige que las palabras estén JUNTAS, no que existan en el documento")
 
-_c, _pr, _desc = L.anclar(
+_c, _pr, _desc, _sinv = L.anclar(
     {"fecha_emision": date(2015, 12, 10), "anios_pactados": 20},
     {"fecha_emision": "modelo", "anios_pactados": "modelo"},
     {"fecha_emision": "En Madrid, a 10 de Diciembre de 2015",
@@ -2090,6 +2151,689 @@ if _docs27:
     comprobar("insignia" in (_c7.get("observado") or ""),
               "Lo observado nombra la insignia en vez de contarla como alerta",
               str(_c7.get("observado")))
+
+# ---------------------------------------------------------------------------
+print("\n28 · El panel de contradicciones enseña el fallo, no lo esconde")
+# «Lo de los archivos JSON no me gusta, me parece mucho menos visual.» La
+# exportación no se enseña nunca —se elige de un desplegable—, pero la tabla de
+# hechos sí escondía lo único que importa: después de que una persona elija una
+# de las dos fechas, las dos siguen con «Activo: sí». Dos síes en una columna no
+# son un hallazgo; dos tarjetas enfrentadas, una en verde y otra en rojo, sí.
+import json as _js
+from modulos import contradicciones as _CO
+from ui import _mismo_texto as _mt
+
+_EXPORT = {
+    "document_group": [{"id": 1, "group_key": "PED1004",
+                        "grouping_method": "filename_pattern"}],
+    "extracted_facts": [
+        {"id": 24, "group_id": 1, "document_name": "Confirmacion_PED1004.pdf",
+         "field_name": "fecha_entrega",
+         "raw_field_label": "Fecha de entrega confirmada al cliente",
+         "value_text": "25/08/2026", "is_active": 1},
+        {"id": 25, "group_id": 1, "document_name": "Pedido_PED1004.pdf",
+         "field_name": "fecha_entrega",
+         "raw_field_label": "Fecha de entrega comprometida",
+         "value_text": "12/08/2026", "is_active": 1}],
+    "contradictions": [{"id": 7, "group_id": 1, "field_name": "fecha_entrega",
+                        "fact_a_id": 24, "fact_b_id": 25, "severity": "medium",
+                        "detection_method": "deterministic_date"}],
+    "contradiction_resolutions": [
+        {"contradiction_id": 7, "resolution_type": "validate_a",
+         "resolved_value": "25/08/2026", "resolved_by": "Director de Producción",
+         "resolved_by_role_id": None, "resolved_at": "02/08/2026 14:52"}],
+}
+
+
+def _descartado_vivo(export):
+    """Los hechos que una persona descartó y que siguen marcados como vigentes."""
+    datos, _ = _CO.interpretar(_js.dumps(export))
+    esperados, _ctx = _CO.verdad_de_campo(datos)
+    por_id = {h["id"]: h for h in datos["hechos"]}
+    vivos = []
+    for e in esperados:
+        res = None
+        for c in datos["contradicciones"]:
+            if {c["hecho_a"], c["hecho_b"]} == e["hechos"]:
+                res = c.get("resolucion")
+        if not res:
+            continue
+        vivos += [por_id[i] for i in e["hechos"]
+                  if por_id[i]["activo"]
+                  and not _mt(res.get("valor"), por_id[i]["valor"])]
+    return len(esperados), vivos
+
+
+_n, _vivos = _descartado_vivo(_EXPORT)
+comprobar(_n == 1, "Se deriva una contradicción de los hechos, sin mirar la "
+                   "tabla que emite el módulo", str(_n))
+comprobar(len(_vivos) == 1 and _vivos[0]["valor"] == "12/08/2026",
+          "Y se detecta que el valor descartado sigue vigente: es el caso 7",
+          str([h["valor"] for h in _vivos]))
+
+# La reexportación corregida: is_active = 0 en el descartado.
+_CORREGIDO = _copy.deepcopy(_EXPORT)
+for _f in _CORREGIDO["extracted_facts"]:
+    if _f["id"] == 25:
+        _f["is_active"] = 0
+_n2, _vivos2 = _descartado_vivo(_CORREGIDO)
+comprobar(_n2 == 1,
+          "Con la corrección aplicada la contradicción SIGUE derivándose: una "
+          "contradicción resuelta existió, y castigar la corrección que uno mismo "
+          "pidió sería absurdo", str(_n2))
+comprobar(not _vivos2,
+          "…y ya no queda ningún descartado vigente: el panel pasa de rojo a verde")
+
+_fuente_panel = _insp.getsource(_ui.panel_contradicciones)
+comprobar("El valor descartado sigue activo" in _fuente_panel,
+          "El panel dice el fallo con palabras, no con una columna de síes")
+comprobar("el rol no se identifica" in _fuente_panel,
+          "…y señala que el rastro apunta a un cargo y no a una persona, que es "
+          "por donde enlaza con el módulo de Pablo")
+
+# ---------------------------------------------------------------------------
+print("\n29 · El modelo entra donde la regla se rinde, y no un paso más allá")
+# El clasificador de cada rama busca frases literales, así que reconoce los
+# documentos con los que se escribió y ninguno más. Íñigo metió dos órdenes
+# nuevas en el módulo de Juan y salieron «No identificado»: se leían enteras y el
+# sistema no sabía qué eran.
+#
+# La respuesta no es sustituir la regla por el modelo —la regla es reproducible,
+# gratis e inspeccionable— sino llamarlo SÓLO cuando la regla dice que no sabe, y
+# aceptar lo que proponga únicamente si supera las mismas garantías que cualquier
+# otro valor del sistema.
+from nucleo import clasificacion as _CLAS
+from nucleo import llm as _LLM
+from modulos import auditoria as _AUD
+
+# Este documento la regla NO lo clasifica: tiene una sola señal («cover») y el
+# clasificador exige dos más ventaja sobre el segundo. Es justo el hueco donde
+# tiene sentido preguntarle al modelo. Si algún día la regla aprende a leerlo,
+# esta prueba empezará a fallar — y ese fallo será una buena noticia que habrá
+# que atender cambiando el ejemplo, no relajando la regla.
+_DOC_RARO = {"nombre": "hoja_suelta.pdf", "legible": True, "capa": True,
+             "texto": "Nota interna sobre el cover del trabajo en curso. "
+                      "Pendiente de confirmar con produccion antes del jueves."}
+_DOC_ORDEN = {"nombre": "of.pdf", "legible": True, "capa": True,
+              "texto": "ORDEN DE FABRICACION 42463\nCantidad: 3.000"}
+
+_original_clas = _LLM.clasificar_con_llm
+try:
+    # En determinista no se llama al modelo ni aunque la regla se rinda.
+    _LLM.clasificar_con_llm = lambda *a, **k: (_ for _ in ()).throw(
+        AssertionError("no debería llamarse en modo determinista"))
+    _d, _ = _CLAS.anotar_tipos([dict(_DOC_RARO)], _AUD.clasificar, _AUD.TIPOS,
+                               "determinista", permiso=(True, ""))
+    comprobar(_d[0]["tipo"] == "desconocido" and _d[0]["tipo_via"] == "ninguna",
+              "En modo determinista no se llama al modelo: el sistema sigue "
+              "siendo el de siempre mientras nadie pida ayuda")
+
+    _CASOS_MODELO = [
+        ("acierta y la cita existe",
+         ("pedido_cliente", 0.92, "Nota interna sobre el cover del trabajo"),
+         "pedido_cliente", "modelo"),
+        ("se inventa la cita",
+         ("pedido_cliente", 0.95, "Esta frase no está en el documento"),
+         "desconocido", "ninguna"),
+        ("duda (confianza por debajo del mínimo)",
+         ("presupuesto", 0.41, "Extent: 96pp"), "desconocido", "ninguna"),
+        ("propone un tipo que no existe en la rama",
+         ("factura_marciana", 0.99, "Nota interna sobre el cover"), "desconocido", "ninguna"),
+        ("no da ninguna cita",
+         ("pedido_cliente", 0.99, ""), "desconocido", "ninguna"),
+    ]
+    for _nombre, _resp, _tipo_esp, _via_esp in _CASOS_MODELO:
+        _LLM.clasificar_con_llm = lambda *a, _r=_resp, **k: _r
+        _d, _av = _CLAS.anotar_tipos([dict(_DOC_RARO)], _AUD.clasificar,
+                                     _AUD.TIPOS, "asistido", permiso=(True, ""))
+        comprobar(_d[0]["tipo"] == _tipo_esp and _d[0]["tipo_via"] == _via_esp,
+                  f"Modelo que {_nombre} → {_tipo_esp}",
+                  f"{_d[0]['tipo']} / {_d[0]['tipo_via']}")
+        comprobar(bool(_av), f"…y queda dicho en pantalla, no en silencio")
+
+    # Lo que la regla SÍ reconoce no se le pregunta a nadie.
+    _LLM.clasificar_con_llm = lambda *a, **k: (_ for _ in ()).throw(
+        AssertionError("la regla ya lo había resuelto"))
+    _d, _ = _CLAS.anotar_tipos([dict(_DOC_ORDEN)], _AUD.clasificar, _AUD.TIPOS,
+                               "asistido", permiso=(True, ""))
+    comprobar(_d[0]["tipo"] == "orden" and _d[0]["tipo_via"] == "regla",
+              "Lo que la regla reconoce lo decide la regla: ni una llamada de más")
+
+    # Y si el modelo se cae, el documento se queda como estaba: sin identificar.
+    _LLM.clasificar_con_llm = lambda *a, **k: (_ for _ in ()).throw(
+        _LLM.NoDisponible("sin clave"))
+    _d, _av = _CLAS.anotar_tipos([dict(_DOC_RARO)], _AUD.clasificar, _AUD.TIPOS,
+                                 "asistido", permiso=(True, ""))
+    comprobar(_d[0]["tipo"] == "desconocido" and any("asistida" in a for a in _av),
+              "Si la lectura asistida no está disponible se dice, y no se rompe "
+              "nada: el documento se queda sin identificar, como antes")
+finally:
+    _LLM.clasificar_con_llm = _original_clas
+
+# El bug que encontró esta sección antes de llegar a producción.
+comprobar(isinstance(_LLM.fragmento_presente("hola", "hola que tal"), tuple),
+          "`fragmento_presente` devuelve una tupla (presente, proporción)")
+comprobar(not _LLM.fragmento_presente("zzz qqq inventado", "hola que tal")[0],
+          "…y hay que desempaquetarla: escrita como `not f(...)` la comprobación "
+          "de anclaje nunca es cierta, porque una tupla no vacía siempre lo es")
+
+comprobar(hasattr(_LLM, "leer_pdf"),
+          "Existe la vía de mandarle el PDF al modelo en vez del texto del OCR")
+_src_pdf = _insp.getsource(_LLM.leer_pdf)
+comprobar("sha256" in _src_pdf,
+          "…y su caché va por el contenido del fichero, no por su nombre")
+
+# ---------------------------------------------------------------------------
+print("\n30 · Leer del PDF sin dejar de poder comprobar lo leído")
+# Mandarle al modelo el texto del OCR le pone el mismo techo que a las reglas: si
+# tesseract se comió el año, el modelo tampoco lo recupera. Con el PDF hace su
+# propia lectura. Pero entonces aparece la pregunta que decide si esto es
+# defendible o no: **¿contra qué se verifica lo que dice?**
+#
+# Contra el texto, como siempre. Son dos cosas distintas —por dónde lee el modelo
+# y contra qué se comprueba— y confundirlas dejaría al evaluador sin la segunda.
+# El caso interesante es el documento del que NO hay texto: ahí no falta la cita,
+# falta el patrón contra el que medirla.
+
+_TXT = ("En Madrid, a 10 de Diciembre de 2015, las partes acuerdan un plazo "
+        "inicial de CATORCE AÑOS contados desde el 15 de enero de 2016.")
+
+# a) Con texto, todo sigue igual: la cita buena entra y la inventada se cae.
+_c, _pr, _d, _sv = _LLM.anclar(
+    {"fecha_emision": date(2015, 12, 10), "anios_pactados": 20},
+    {"fecha_emision": "modelo", "anios_pactados": "modelo"},
+    {"fecha_emision": "En Madrid, a 10 de Diciembre de 2015",
+     "anios_pactados": "plazo inicial de VEINTE AÑOS"},
+    _TXT, ["fecha_emision", "anios_pactados"])
+comprobar(_c["fecha_emision"] == date(2015, 12, 10) and _c["anios_pactados"] is None
+          and not _sv,
+          "Con texto reconocido, el anclaje se comporta como siempre: nada nuevo "
+          "se cuela por la puerta de atrás")
+
+# b) Sin texto: el valor se acepta, se marca, y NO se cuenta como descarte.
+_c2, _pr2, _d2, _sv2 = _LLM.anclar(
+    {"fecha_emision": date(2015, 12, 10)},
+    {"fecha_emision": "modelo · leído del PDF"},
+    {"fecha_emision": "En Madrid, a 10 de Diciembre de 2015"},
+    "", ["fecha_emision"])
+comprobar(_c2["fecha_emision"] == date(2015, 12, 10),
+          "Sin texto contra el que comparar, el valor leído del PDF se ACEPTA: "
+          "descartarlo tiraría lecturas buenas y dejaría el sistema donde estaba")
+comprobar("fecha_emision" in _sv2 and not _d2,
+          "…pero se marca como no verificable, y no se cuenta como descarte: son "
+          "dos cosas distintas", f"sin_verificar={list(_sv2)} descartes={list(_d2)}")
+comprobar("sin anclaje verificable" in _pr2["fecha_emision"],
+          "…y la procedencia lo dice, para que el veredicto pueda declararlo",
+          _pr2["fecha_emision"])
+
+# c) La procedencia distingue por dónde ha entrado la lectura.
+comprobar("leído del PDF" in _pr2["fecha_emision"],
+          "Se declara si el modelo ha leído el PDF o el texto: no es la misma "
+          "lectura y el veredicto no puede confundirlas")
+
+# d) Lo que decide la regla nunca pasa por aquí.
+_c3, _pr3, _d3, _sv3 = _LLM.anclar(
+    {"fecha_emision": date(2015, 12, 10)}, {"fecha_emision": "regla"},
+    {}, "", ["fecha_emision"])
+comprobar(_c3["fecha_emision"] == date(2015, 12, 10) and not _sv3 and not _d3,
+          "A un valor de la regla no se le pide cita: no lo ha propuesto nadie a "
+          "quien haya que creer")
+
+# e) La rama arrastra la marca hasta los campos, que es donde se puede enseñar.
+comprobar("sin_anclaje_verificable" in _insp.getsource(vigencia.verdad_de_campo),
+          "La rama de vigencia recoge los campos sin anclaje verificable")
+comprobar("pdf=d.get(\"ruta\")" in _insp.getsource(vigencia.verdad_de_campo),
+          "…y le pasa el PDF al modelo, no sólo el texto")
+_reg = _P.leer(_CORPUS / "20160119_ANEXO.pdf") if _CORPUS.is_dir() else {}
+comprobar(bool(_reg.get("ruta")),
+          "El registro de documento lleva la ruta del fichero, que es lo que "
+          "necesita la lectura asistida", str(_reg.get("ruta")))
+
+# f) El camino entero, con un modelo simulado. Las tres situaciones posibles.
+#
+# Y aquí apareció el fallo que justifica esta sección entera: `combinar()` sólo
+# deja pasar los campos permitidos, y `citas` no es uno de ellos —no es un dato
+# del documento, es la prueba de los otros—. Se quedaba fuera, y el anclaje
+# recibía después un diccionario vacío: descartaba TODO lo que dijera el modelo
+# por «no aporta el fragmento que lo sostiene». El modo asistido llamaba, pagaba
+# la llamada y tiraba la respuesta entera. No se había visto porque este camino
+# nunca se había recorrido con una clave de verdad: las pruebas del anclaje le
+# pasaban las citas a mano.
+_CITAS_SIM = {"fecha_emision": "a cuatro de abril de mil novecientos noventa y cinco",
+              "anios_pactados": "por plazo de VEINTICINCO AÑOS"}
+_disp, _lpdf, _ext, _clv = (_LLM.esta_disponible, _LLM.leer_pdf,
+                            _LLM.extraer_con_llm, _LLM._CLAVE)
+try:
+    _LLM.esta_disponible = lambda: True
+    _LLM._CLAVE = "de-mentira"
+    _LLM.leer_pdf = lambda *a, **k: {
+        "fecha_emision": "1995-04-04", "anios_pactados": 25,
+        "familia": "principal", "requiere_fecha_caducidad": True,
+        "citas": dict(_CITAS_SIM)}
+    _LLM.extraer_con_llm = lambda *a, **k: (_ for _ in ()).throw(
+        AssertionError("teniendo el PDF no debería leer el texto"))
+
+    def _asistido(texto):
+        _d = {"nombre": "sim", "id": "sim", "ruta": str(_CORPUS / "20160119_ANEXO.pdf"),
+              "legible": True, "capa": False, "via": "ocr", "texto": texto,
+              "paginas": 1, "integridad": {}}
+        _e, _ = vigencia.verdad_de_campo([_d], date(2026, 9, 1), modo="asistido")
+        return _e[0]["campos"]
+
+    _sin = _asistido("")
+    comprobar(_sin.get("fecha_emision") == date(1995, 4, 4)
+              and "fecha_emision" in (_sin.get("sin_anclaje_verificable") or {}),
+              "Sin texto: el valor del PDF se acepta y se marca como no "
+              "verificable", str(_sin.get("fecha_emision")))
+
+    _ok = _asistido("Otorgada en Zaragoza a cuatro de abril de mil novecientos "
+                    "noventa y cinco, por plazo de VEINTICINCO AÑOS.")
+    comprobar(_ok.get("fecha_emision") == date(1995, 4, 4)
+              and not (_ok.get("sin_anclaje_verificable") or {})
+              and not (_ok.get("descartes_modelo") or {}),
+              "Con texto que confirma la cita: entra anclado, sin marcas")
+
+    _mal = _asistido("Este documento habla de otra cosa distinta y no menciona "
+                     "ninguna fecha ni ningún plazo de los que se afirman.")
+    comprobar(_mal.get("fecha_emision") is None
+              and "fecha_emision" in (_mal.get("descartes_modelo") or {}),
+              "Con texto que la desmiente: se descarta, y se dice por qué")
+finally:
+    (_LLM.esta_disponible, _LLM.leer_pdf,
+     _LLM.extraer_con_llm, _LLM._CLAVE) = _disp, _lpdf, _ext, _clv
+
+# ---------------------------------------------------------------------------
+print("\n31 · El veto se comprueba donde sale el contenido, no donde se elige el modo")
+# Cada rama declara `ia_permitida`, y en la de Juan el motivo no es técnico: sus
+# documentos son datos reales de un cliente de GraphyCems y el nivel gratuito del
+# proveedor usa el contenido que se le manda para mejorar sus modelos.
+#
+# Ese veto lo respetaba el selector de modo de la interfaz. Funciona, y no basta:
+# es un guardia en la puerta principal de una casa con varias puertas. Cualquier
+# código que llame a la lectura asistida desde fuera de esa pantalla —un script,
+# una medición, un flujo nuevo— se lo saltaba sin enterarse. Y lo que se escapa
+# no es un fallo de cálculo: son documentos de un cliente que no ha dado permiso.
+_TEXTO_CLIENTE = ("Documento con datos reales de un cliente. "
+                  "Quantity: 3000 copies. Cover material: 240gsm.")
+_generar_real = _LLM._generar
+_disp_real, _clave_real = _LLM.esta_disponible, _LLM._CLAVE
+_FUGAS = []
+try:
+    # Espía: cualquier salida real hacia el proveedor pasa por aquí.
+    def _espia(*a, **k):
+        _FUGAS.append(a)
+        raise AssertionError("se ha llamado al proveedor")
+    _LLM._generar = _espia
+    _LLM.esta_disponible = lambda: True
+    _LLM._CLAVE = "de-mentira"
+
+    for _m in _M.RAMAS:
+        _f = _m.FICHA
+        _perm = _LLM.permiso_de(_f)
+        _permitida = bool(_f.get("ia_permitida"))
+        for _nombre, _fn, _args in [
+            ("clasificar_con_llm", _LLM.clasificar_con_llm,
+             (_TEXTO_CLIENTE, {"a": "A"})),
+            ("resolver", _LLM.resolver,
+             ("asistido", {"x": None}, _TEXTO_CLIENTE, {}, "p")),
+            ("leer_pdf", _LLM.leer_pdf, ("/tmp/no_existe.pdf", {}, "p")),
+        ]:
+            _antes = len(_FUGAS)
+            try:
+                _fn(*_args, permiso=_perm)
+                _res = "pasa"
+            except _LLM.Vetada:
+                _res = "vetada"
+            except Exception:
+                _res = "otra"
+            _ha_salido = len(_FUGAS) > _antes
+            if _permitida:
+                comprobar(_res != "vetada",
+                          f"{_f['id']} tiene permiso: {_nombre} no se veta")
+            else:
+                comprobar(_res == "vetada" and not _ha_salido,
+                          f"{_f['id']} tiene la IA cerrada: {_nombre} se detiene "
+                          f"ANTES de mandar nada", f"{_res}, salió={_ha_salido}")
+
+    # Lo que no está concedido, está denegado. Sin permiso no se pasa.
+    for _nombre, _fn, _args in [
+        ("clasificar_con_llm", _LLM.clasificar_con_llm, ("x", {"a": "A"})),
+        ("resolver", _LLM.resolver, ("asistido", {"x": None}, "x", {}, "p")),
+        ("leer_pdf", _LLM.leer_pdf, ("/tmp/no_existe.pdf", {}, "p")),
+    ]:
+        try:
+            _fn(*_args)
+            _ok = False
+        except _LLM.Vetada:
+            _ok = True
+        except Exception:
+            _ok = False
+        comprobar(_ok, f"Sin permiso explícito, {_nombre} se deniega: un dato de "
+                       f"cliente no sale hacia un proveedor por omisión")
+
+    # Y la rama vetada tampoco llega por el camino del clasificador.
+    # Un documento que la REGLA no reconoce: si lo reconociera, el modelo no se
+    # llamaría nunca y la prueba pasaría sin comprobar nada. El texto lleva a
+    # propósito datos que parecen de cliente, que es lo que no debe salir.
+    _docs_j = [{"nombre": "cliente.pdf", "legible": True, "capa": True,
+                "texto": "Confirmacion de tirada para el titulo ISBN "
+                         "9780717195473, edicion de la editorial, con precios "
+                         "y condiciones acordadas para el ejercicio."}]
+    _antes = len(_FUGAS)
+    _dj, _avj = _CLAS.anotar_tipos(_docs_j, _AUD.clasificar, _AUD.TIPOS,
+                                   "asistido",
+                                   permiso=_LLM.permiso_de(_AUD.FICHA))
+    comprobar(len(_FUGAS) == _antes,
+              "Ni pidiendo modo asistido explícitamente sobre la rama de Juan "
+              "sale un solo documento de cliente hacia el proveedor")
+    comprobar(any("cerrada" in a for a in _avj),
+              "…y se dice que está cerrada, con su motivo, en vez de fallar en "
+              "silencio o fingir que no se ha intentado")
+finally:
+    _LLM._generar = _generar_real
+    _LLM.esta_disponible, _LLM._CLAVE = _disp_real, _clave_real
+
+comprobar(_AUD.FICHA.get("ia_permitida") is False
+          and "cliente" in (_AUD.FICHA.get("motivo_ia") or ""),
+          "El veto de la rama de Juan sigue declarado y con su motivo escrito")
+
+# ---------------------------------------------------------------------------
+print("\n32 · El clasificador de Juan, por señales y no por frases")
+# Su rama tiene la IA cerrada por datos de cliente, así que generalizar aquí no
+# puede apoyarse en el modelo: hay que hacerlo con reglas. Cada tipo declara
+# varias señales independientes y se exige que un tipo reúna dos y le saque
+# ventaja al segundo. Con una sola señal no se decide: «cover» aparece en un
+# presupuesto y en un pedido.
+_CLASIF = [
+    ("ORDEN DE FABRICACION Nº 42805\nCliente: X\nCantidad: 3.000\n"
+     "Interiores 80 gramaje\nCubiertas 240", "orden",
+     "la orden tal como venía en el pedido 42805"),
+    ("O.F. Nº 42463\nTirada: 5.000 ejemplares\nEncuadernación: rústica\n"
+     "Formato: 210 x 297\nGramaje interior 90", "orden",
+     "otra orden, sin la frase literal que buscaba la versión anterior"),
+    ("Hoja de impresión\nCantidad: 1.200\nGramaje: 120\nCubiertas estucadas",
+     "orden", "sin encabezado, sólo vocabulario de taller"),
+    ("RE: 9780717195473\nQuantity: 3000 copies\nExtent: 96 pp\n"
+     "Cover Material: 240 gsm", "pedido_cliente", "el pedido de siempre"),
+    ("PURCHASE ORDER\nWe hereby order 3000 copies\nBinding: limp\n"
+     "Delivery date: 12 August", "pedido_cliente", "un pedido redactado de otra forma"),
+    ("Dear Sirs,\nPlease find herewith our prices for the above title.\n"
+     "3000 cps. = 1,85", "presupuesto", "el presupuesto de siempre"),
+    ("QUOTATION\nRef: 9780717195473\nUnit price: 1.85\nValid until 31 December",
+     "presupuesto", "un presupuesto con otra plantilla"),
+    ("Plano de montaje de la máquina 4. Esquema eléctrico, revisión B.",
+     "desconocido", "un plano no es ninguno de los tres, y decirlo es lo correcto"),
+    ("Cover", "desconocido", "una señal suelta no decide nada"),
+    ("", "sin_texto", "sin texto no hay clasificación posible"),
+]
+for _t, _esp, _por in _CLASIF:
+    _r = _AUD.clasificar(_t)
+    comprobar(_r == _esp, f"«{_por}» → {_esp}", _r)
+
+comprobar(_AUD.MINIMO_SENALES >= 2,
+          "Se exigen al menos dos señales: una sola es volver a enumerar frases")
+
+# El mensaje de lo que falta tiene que nombrar lo que sí se ha visto.
+_solo_ordenes = [
+    {"nombre": "of_42463.pdf", "legible": True, "capa": True,
+     "texto": "O.F. Nº 42463\nTirada: 5.000\nEncuadernación: rústica\nGramaje 90"},
+    {"nombre": "of_schema_draw.pdf", "legible": True, "capa": True,
+     "texto": "Plano de montaje. Esquema eléctrico, revisión B. Cotas en mm."},
+]
+try:
+    _AUD.verdad_de_campo(_solo_ordenes)
+    comprobar(False, "Dos órdenes sin pedido de cliente no pueden producir un caso")
+except ValueError as _e:
+    _msg = str(_e)
+    comprobar("of_42463.pdf" in _msg and "of_schema_draw.pdf" in _msg,
+              "Cuando falta algo, el mensaje dice qué documentos SÍ se han leído "
+              "y como qué se han identificado: sin eso parece que el sistema no "
+              "sabe leer, cuando lo que falta es la otra mitad del contraste")
+    comprobar("no existe" in _msg,
+              "…y explica que una orden sola no es un caso incompleto, sino un "
+              "caso que no existe")
+
+# ---------------------------------------------------------------------------
+print("\n33 · Las ramas de JSON ante exportaciones que no ha visto nadie")
+# Álvaro y Mencía tienen la IA cerrada por diseño —su salida ya viene
+# estructurada y el evaluador la recalcula—, así que aquí generalizar no es
+# leer mejor: es **no romperse** ante una exportación distinta y decir qué falta.
+from modulos import similitud as _SIM
+from modulos import contradicciones as _CON
+
+_ENTRADAS = [
+    ("vacía", ""),
+    ("no es JSON", "esto no es json {{"),
+    ("JSON que no es un objeto", "[1, 2, 3]"),
+    ("objeto vacío", "{}"),
+    ("tablas con otros nombres", json_mod.dumps({"facts": [], "otras": []})),
+    ("null donde iba una lista",
+     json_mod.dumps({"document_group": None, "extracted_facts": None,
+                     "contradictions": None})),
+]
+for _rama, _fn in (("Mencía", _CON.interpretar), ("Álvaro", _SIM.interpretar)):
+    for _nombre, _txt in _ENTRADAS:
+        try:
+            _datos, _av = _fn(_txt)
+            _roto = False
+        except Exception as _e:                       # noqa: BLE001
+            _roto, _av = True, [str(_e)]
+        comprobar(not _roto,
+                  f"{_rama}: una exportación {_nombre} no rompe el intérprete")
+        if _nombre in ("vacía", "no es JSON", "JSON que no es un objeto"):
+            comprobar(bool(_av),
+                      f"{_rama}: …y se dice por qué, en vez de dejar la pantalla "
+                      f"en blanco")
+
+# Un hecho vacío no es una comprobación superada.
+#
+# Una exportación con dos hechos que sólo traen `id` los agrupaba bajo el campo
+# «» y, como sus valores «coincidían» (ninguno con ninguno), el caso 2 daba
+# SUPERADO: el módulo se llevaba un caso a favor sin que se hubiera comprobado
+# nada suyo. Un evaluador que aprueba con la entrada vacía no está midiendo.
+_VACIOS = json_mod.dumps({"document_group": [{"id": 1, "group_key": "P"}],
+                          "extracted_facts": [{"id": 1}, {"id": 2}],
+                          "contradictions": []})
+_dv, _avv = _CON.interpretar(_VACIOS)
+comprobar(any("sin campo o sin valor" in a for a in _avv),
+          "Se avisa de los hechos que llegan sin campo ni valor")
+_espv, _ctxv = _CON.verdad_de_campo(_dv)
+_evv = _CON.evaluar(_espv, _ctxv, None)
+comprobar(not any(c["resultado"] == "pasa" for c in _evv["casos"].values()),
+          "Y ningún caso se da por superado sobre hechos vacíos: coincidir con "
+          "la nada no es coincidir",
+          str({n: c["resultado"] for n, c in _evv["casos"].items()
+               if c["resultado"] == "pasa"}))
+comprobar(_ctxv.get("hechos_incompletos") == [1, 2],
+          "…y queda registrado cuáles eran, para poder pedírselos al compañero")
+
+# Una contradicción que apunta a hechos inexistentes tampoco debe romper nada.
+_FANTASMA = json_mod.dumps({
+    "document_group": [{"id": 1, "group_key": "P"}],
+    "extracted_facts": [{"id": 1, "field_name": "f", "value_text": "a",
+                         "document_name": "d1", "is_active": 1}],
+    "contradictions": [{"id": 9, "fact_a_id": 77, "fact_b_id": 88,
+                        "field_name": "f", "severity": "high"}]})
+try:
+    _df, _ = _CON.interpretar(_FANTASMA)
+    _ef, _cf = _CON.verdad_de_campo(_df)
+    _evf = _CON.evaluar(_ef, _cf, None)
+    comprobar(True, "Una contradicción que señala hechos que no existen se "
+                    "evalúa sin romper nada")
+except Exception as _e:                               # noqa: BLE001
+    comprobar(False, "Una contradicción que señala hechos que no existen se "
+                     "evalúa sin romper nada", str(_e))
+
+# ---------------------------------------------------------------------------
+print("\n34 · La cadena de validación: quién decide, quién puede y qué sobrevive")
+# El módulo de Mencía no es un lector: registra decisiones humanas y promete
+# conservarlas. A un lector se le mide con una foto; a una promesa sobre el
+# tiempo hacen falta dos. Y hay una pregunta que ningún módulo puede contestar
+# solo —¿validó quien tenía autoridad?— porque la validación la emite ella y el
+# organigrama lo declara Pablo.
+import copy as _cp
+from nucleo import autoridad as _AUT
+
+# --- El organigrama, convertido en algo que se puede preguntar --------------
+_AUTORIDAD = [
+    ("Director de Producción", "produccion", True,
+     "el que validó el PED1004: manda en su área"),
+    ("Administrativo Comercial", "produccion", False,
+     "nivel 3 de otra área — es quien propone en el vídeo"),
+    ("Director Comercial", "produccion", False,
+     "nivel 2, pero de Comercial: subir de escalón no cruza de departamento"),
+    ("Director Comercial", "comercial", True, "en su propia área sí manda"),
+    ("CEO", "produccion", True, "autoridad global declarada"),
+    ("Encargado de Turno", "produccion", False,
+     "nivel 3 de Producción: está en el área, pero no manda en ella"),
+    ("Alguien que no existe", "produccion", None,
+     "no se reconoce el rol: no saberlo no es que no la tuviera"),
+    ("Director Comercial", "marciana", None, "categoría fuera de la ontología"),
+    ("Director Comercial", None, None, "sin categoría no hay nada que comprobar"),
+]
+if _AUT.cargar():
+    for _q, _cat, _esp, _por in _AUTORIDAD:
+        _v, _m = _AUT.tiene_autoridad(_q, _cat)
+        comprobar(_v is _esp, f"{_q} sobre «{_cat}» → {_esp} ({_por})", f"{_v}: {_m}")
+    comprobar(_AUT.confirmada() is True,
+              "La ontología se declara CONFIRMADA: la entregó el propio Pablo y "
+              "este JSON es la transcripción literal de su página, así que los "
+              "casos que se apoyan en ella pueden fallarle a alguien")
+    comprobar("PENDIENTE" in _AUT.cargar()["lo_que_esta_matriz_no_dice"].upper()
+              or "pendiente" in _AUT.cargar()["lo_que_esta_matriz_no_dice"],
+              "El fichero declara lo que la matriz NO dice: el mapa campo → "
+              "ámbito, que es la pieza que sigue faltando",
+              "confirmar el origen no puede convertirse en dar por buena la "
+              "suposición de AREA_DE_CATEGORIA")
+
+# --- Los tres casos nuevos, sobre la exportación real ----------------------
+_RUTA_PED = guion.RAIZ / "contradicciones" / "export_PED1004.json"
+if _RUTA_PED.is_file():
+    _BASE = json_mod.loads(_RUTA_PED.read_text(encoding="utf-8"))
+
+    def _evalua(raw, previo=None):
+        _d, _ = _CON.interpretar(json_mod.dumps(raw))
+        _e, _c = _CON.verdad_de_campo(_d)
+        _p = _CON.interpretar(json_mod.dumps(previo))[0] if previo else None
+        return _CON.evaluar(_e, _c, None, estado_previo=_p)
+
+    comprobar(_CON.interpretar(json_mod.dumps(_BASE))[0]["contradicciones"][0]
+              .get("categoria") == "produccion",
+              "La categoría viaja en la exportación y el intérprete la conserva: "
+              "es lo que enlaza con el organigrama")
+
+    _ev = _evalua(_BASE)
+    comprobar(_ev["casos"][11]["resultado"] == "pasa",
+              "Caso 11: el PED1004 lo validó quien manda en Producción",
+              _ev["casos"][11]["resultado"])
+
+    _sin_aut = _cp.deepcopy(_BASE)
+    _sin_aut["contradiction_resolutions"][0]["resolved_by"] = "Director Comercial"
+    _ev2 = _evalua(_sin_aut)
+    comprobar(_ev2["casos"][11]["resultado"] == "pendiente"
+              and "lo he supuesto yo" in _ev2["casos"][11]["observacion"],
+              "Con una validación sin autoridad, el caso NO falla mientras el mapa "
+              "categoría → ámbito lo haya escrito el evaluador: la matriz es de "
+              "Pablo, pero el paso del que depende el veredicto es mío",
+              _ev2["casos"][11]["resultado"])
+    comprobar("campo/categoría → ámbito" in (_ev2["casos"][11].get("requiere") or ""),
+              "…y el caso pide exactamente la pieza que falta, no la que ya está",
+              _ev2["casos"][11].get("requiere"))
+
+    # Sin exportación anterior, los dos casos del tiempo quedan pendientes.
+    for _n in (12, 13):
+        comprobar(_ev["casos"][_n]["resultado"] == "pendiente"
+                  and bool(_ev["casos"][_n].get("requiere")),
+                  f"Caso {_n} pendiente con una sola exportación, y dice qué falta",
+                  _ev["casos"][_n]["resultado"])
+
+    # Con el par antes/después, los tres escenarios que importan.
+    _ANTES = _cp.deepcopy(_BASE); _ANTES["contradiction_resolutions"] = []
+    _ev3 = _evalua(_BASE, _ANTES)
+    comprobar(_ev3["casos"][12]["resultado"] == "pasa"
+              and _ev3["casos"][13]["resultado"] == "pasa",
+              "Resolver una contradicción no pierde nada ni toca la evidencia")
+
+    _revoca = _cp.deepcopy(_BASE)
+    _revoca["contradiction_resolutions"][0].update(
+        {"resolution_type": "validate_b", "resolved_value": "12/08/2026",
+         "resolved_by": "Director Comercial",
+         "resolved_at": "2026-08-02 15:10:00"})
+    _ev4 = _evalua(_revoca, _BASE)
+    comprobar(_ev4["casos"][12]["resultado"] == "no_pasa"
+              and "Director de Producción" in _ev4["casos"][12]["observacion"],
+              "Cuando una decisión revoca a otra, la primera desaparece de la "
+              "exportación — y el caso lo dice con los dos nombres delante",
+              _ev4["casos"][12]["resultado"])
+
+    _toca = _cp.deepcopy(_BASE)
+    _toca["extracted_facts"][1]["value_text"] = "25/08/2026"
+    _ev5 = _evalua(_toca, _BASE)
+    comprobar(_ev5["casos"][13]["resultado"] == "no_pasa",
+              "Si al resolver cambia la evidencia, el caso 13 falla: la decisión "
+              "se pone encima de la evidencia, no en su lugar",
+              _ev5["casos"][13]["resultado"])
+
+    # Y la corrección que pide el caso 7, comprobada de punta a punta.
+    _corregido = _cp.deepcopy(_BASE)
+    for _f in _corregido["extracted_facts"]:
+        if _f["id"] == 25:
+            _f["is_active"] = 0
+    _ev6 = _evalua(_corregido, _BASE)
+    comprobar(_ev6["casos"][7]["resultado"] == "pasa",
+              "Marcando el descartado como inactivo, el caso 7 pasa de fallido a "
+              "superado: es la corrección que el informe le pide a Mencía")
+    comprobar(_ev6["casos"][12]["resultado"] == "pasa"
+              and _ev6["casos"][13]["resultado"] == "pasa",
+              "…y esa corrección no rompe nada más: ni pierde decisiones ni mueve "
+              "la evidencia")
+
+    # La comparación de estados, por sí sola.
+    _a, _ = _CON.interpretar(json_mod.dumps(_ANTES))
+    _b, _ = _CON.interpretar(json_mod.dumps(_corregido))
+    _cmb = _CON.comparar_estados(_a, _b)
+    comprobar(_cmb["resoluciones_nuevas"] == [5]
+              and _cmb["hechos_desactivados"] == [25]
+              and not _cmb["hechos_alterados"],
+              "La comparación nombra lo que cambió y confirma que la evidencia "
+              "sigue intacta", str({k: v for k, v in _cmb.items() if v}))
+
+# ---------------------------------------------------------------------------
+print("\n35 · El hilo: un hecho recorriendo tres módulos")
+# La demo por módulos enseña cinco cosas seguidas y cada una se entiende sola. Lo
+# que no enseña es el sistema. El hilo sigue una sola incongruencia —la cantidad
+# del pedido 42805— desde que aparece hasta que alguien decide, y el recorrido
+# es el mismo que dibujó el equipo: observar, gobernar, decidir, comprobar.
+from demo import hilo as _HILO
+
+comprobar([p["fase"] for p in _HILO.PASOS]
+          == ["OBSERVAR", "GOBERNAR", "DECIDIR", "COMPROBAR"],
+          "Los cuatro pasos siguen las fases del flujo acordado por el equipo")
+comprobar([p["responsable"] for p in _HILO.PASOS]
+          == ["Juan Salas", "Pablo Morillas", "Mencía Viñuelas", "Íñigo Daza"],
+          "…y cada fase tiene un dueño distinto: el hilo cruza cuatro trabajos")
+comprobar(_HILO.HECHO["valor_cliente"] == 3000
+          and _HILO.HECHO["valor_orden"] == 30000,
+          "El hecho que recorre el hilo es la incongruencia real del 42805, la "
+          "misma que el evaluador dedujo leyendo los documentos de Juan")
+
+_estado = _HILO.estado_de_los_datos()
+comprobar(set(_estado) >= {"hay_documentos", "ontologia", "exportacion_del_pedido",
+                           "hilo_completo"},
+          "El hilo declara qué datos hay mirando el disco, no escribiéndolo a mano")
+comprobar(_estado["hilo_completo"] is False,
+          "Hoy el hilo NO está completo, y lo dice: falta la exportación de "
+          "Mencía para este pedido. Un guion que afirmara tener datos que no "
+          "están sería el primer error que este sistema reprocha a los demás",
+          str(_estado["hilo_completo"]))
+_parciales = [p for p in _HILO.PASOS if p["estado"] == "parcial"]
+comprobar(len(_parciales) == 1 and _parciales[0]["modulo"] == "contradicciones"
+          and bool(_parciales[0]["requiere"]),
+          "El paso que está a medias es el de Mencía, y declara exactamente qué "
+          "le falta")
+comprobar("evidencia" in _HILO.REGLA and "autoridad" in _HILO.REGLA
+          and "evaluación" in _HILO.REGLA,
+          "La regla del hilo nombra las tres cosas, y la tercera es este bloque")
 
 # ---------------------------------------------------------------------------
 print("\n" + ("Todo correcto." if not fallos

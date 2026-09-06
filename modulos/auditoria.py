@@ -247,17 +247,72 @@ COLUMNAS = [
 # 1. Clasificación de los documentos
 # ===========================================================================
 
-def clasificar(texto):
-    """Identifica de qué tipo es un documento por su contenido, no por su nombre."""
+# Señales por tipo de documento, no frases por tipo de documento.
+#
+# La versión anterior buscaba cuatro cadenas literales —«orden de fabricacion»,
+# «quantity:», «cover material:», «please find herewith our prices»— y por eso
+# reconocía los documentos del pedido 42805 y ninguno más. Íñigo metió dos
+# órdenes nuevas y salieron «No identificado»: el sistema las leía enteras y no
+# sabía qué eran.
+#
+# Enumerar frases es perseguir documentos. Aquí cada tipo declara **varias
+# señales independientes** —vocabulario, formato de dato, estructura— y se cuenta
+# cuántas aparecen. Un documento se identifica cuando un tipo reúne al menos dos
+# señales y le saca ventaja al segundo. Con una sola señal no basta: «cover»
+# aparece en un presupuesto y en un pedido, y elegir por una palabra suelta es
+# volver a lo de antes con más pasos.
+#
+# Y cuando ningún tipo se impone, la respuesta es «desconocido». Que un documento
+# no encaje en la taxonomía de esta rama **no es un fallo del clasificador**: un
+# plano técnico o una hoja de cálculo no son ni una orden ni un pedido, y forzar
+# uno de los tres sería meterlo en una comparación que no le corresponde.
+SENALES = {
+    "orden": [
+        r"orden\s+de\s+fabricacion", r"\bo\.?\s?f\.?\s*n?[ºo°]?\s*\d{4,}",
+        r"\bcantidad\s*:", r"\bgramaje\b", r"\binteriores\b", r"\bcubiertas\b",
+        r"\btirada\b", r"\bencuadernacion\b", r"\bimpresion\b",
+        r"\bcliente\s*:", r"\bformato\s*:",
+    ],
+    "pedido_cliente": [
+        r"\bquantity\s*:", r"\bextent\s*:", r"\bcover\s+material\s*:",
+        r"\btext\s+paper\s*:", r"\btrimmed\s+size\s*:", r"\bbinding\s*:",
+        r"\bpurchase\s+order\b", r"\bwe\s+hereby\s+order\b",
+        r"\bdelivery\s+(date|address)\b", r"\bre\s*:\s*\d{13}\b",
+    ],
+    "presupuesto": [
+        r"please\s+find\s+herewith\s+our\s+prices", r"\bcps\.\s*=",
+        r"\bquotation\b", r"\bquote\s+(ref|no)\b", r"\bunit\s+price\b",
+        r"\bprice\s+per\s+copy\b", r"\bvalid\s+(for|until)\b",
+        r"\bref\s*:\s*\d{13}\b", r"\bour\s+prices\b",
+    ],
+}
+
+MINIMO_SENALES = 2
+
+
+def senales_de(texto):
+    """Cuántas señales de cada tipo aparecen. Se enseña cuando hay que explicar."""
     t = plano(texto)
-    if "orden de fabricacion" in t:
-        return "orden"
-    if "quantity:" in t or "cover material:" in t:
-        return "pedido_cliente"
-    if "please find herewith our prices" in t or re.search(r"\bcps\.\s*=", t):
-        return "presupuesto"
-    if not t.strip():
+    return {tipo: [p for p in patrones if re.search(p, t)]
+            for tipo, patrones in SENALES.items()}
+
+
+def clasificar(texto):
+    """
+    Identifica de qué tipo es un documento por su contenido, no por su nombre.
+
+    Devuelve «desconocido» cuando ningún tipo reúne dos señales o cuando dos
+    empatan. Abstenerse es una respuesta: un documento mal clasificado entra en
+    una comparación que no le corresponde, y el fallo aparece después disfrazado
+    de discrepancia del módulo evaluado.
+    """
+    if not plano(texto).strip():
         return "sin_texto"
+    cuenta = {tipo: len(ss) for tipo, ss in senales_de(texto).items()}
+    orden = sorted(cuenta.items(), key=lambda kv: -kv[1])
+    (mejor, n), (_segundo, m) = orden[0], orden[1]
+    if n >= MINIMO_SENALES and n > m:
+        return mejor
     return "desconocido"
 
 
@@ -362,14 +417,39 @@ def verdad_de_campo(docs, modo="determinista"):
     Discrepancias reales entre la orden y la documentación de cliente, calculadas
     leyendo los documentos. Devuelve (esperados, contexto).
     """
-    orden_doc = next((d for d in docs if clasificar(d["texto"]) == "orden"), None)
+    # `tipo_de` respeta el tipo que ya se haya anotado —incluido el que ponga el
+    # modelo cuando la regla no reconoce el documento— y cae a la regla si nadie
+    # ha pasado por ahí. Antes se reclasificaba aquí, y eso descartaba en
+    # silencio cualquier documento que la regla no supiera nombrar.
+    from nucleo.clasificacion import tipo_de
+    orden_doc = next((d for d in docs if tipo_de(d, clasificar) == "orden"), None)
     cliente_docs = [d for d in docs
-                    if clasificar(d["texto"]) in ("pedido_cliente", "presupuesto")]
+                    if tipo_de(d, clasificar) in ("pedido_cliente", "presupuesto")]
+    # Cuando falta algo, decir QUÉ SE HA VISTO.
+    #
+    # El mensaje anterior era «falta documentación de cliente» a secas, y sobre
+    # una pantalla con dos documentos leídos correctamente parece un fallo del
+    # sistema. No lo es: este módulo audita una orden **contra** la documentación
+    # del cliente, así que dos órdenes no son un caso incompleto, son un caso que
+    # no existe. Pero eso hay que decirlo con los documentos delante, o quien lo
+    # lea seguirá pensando que el evaluador no sabe leer.
+    def _inventario():
+        return ", ".join(
+            f"{d['nombre']} → {TIPOS.get(tipo_de(d, clasificar), '—')}"
+            for d in docs) or "ninguno"
+
     if not orden_doc:
-        raise ValueError("Falta la orden de fabricación: es el documento que se audita.")
+        raise ValueError(
+            f"Falta la orden de fabricación, que es el documento que se audita. "
+            f"Lo que se ha recibido: {_inventario()}.")
     if not cliente_docs:
-        raise ValueError("Falta documentación de cliente: sin ella no hay contra qué "
-                         "contrastar.")
+        raise ValueError(
+            f"Falta documentación de cliente: sin ella no hay contra qué "
+            f"contrastar. Este módulo compara la orden con lo que pidió el "
+            f"cliente, así que la orden sola no produce un caso incompleto — "
+            f"produce un caso que no existe. Lo que se ha recibido: "
+            f"{_inventario()}. Hace falta al menos un pedido de cliente o un "
+            f"presupuesto del mismo trabajo.")
 
     orden = campos_orden(orden_doc["texto"])
     cliente = {}
@@ -395,8 +475,13 @@ def verdad_de_campo(docs, modo="determinista"):
                               "valor_cliente": a, "valor_orden": b,
                               "severidad_esperada": severidad})
 
+    # `id` lo pone `pdf.leer`, pero esta rama no debería depender de que el
+    # documento haya entrado por ahí: un registro construido a mano —una prueba,
+    # un flujo nuevo— la hacía caer con un KeyError, y un evaluador que se rompe
+    # no emite «no se ha podido comprobar», emite una traza.
     contexto = {"orden": orden, "cliente": cliente,
-                "pedido": orden_doc["id"], "procedencia": procedencia,
+                "pedido": orden_doc.get("id") or orden_doc.get("nombre") or "—",
+                "procedencia": procedencia,
                 "comparables": [k for k in CAMPOS
                                 if orden.get(k) is not None and cliente.get(k) is not None]}
     return esperados, contexto

@@ -322,6 +322,7 @@ def leer(ruta, ocr=True):
             paginas = paginas_pdf(ruta)
             return {"nombre": ruta.name, "id": ruta.stem, "capa": False,
                     "via": "ocr", "legible": True, "texto": texto,
+                    "ruta": str(ruta),
                     "paginas": paginas, "integridad": integridad(texto, paginas)}
 
     fallos = []
@@ -339,6 +340,9 @@ def leer(ruta, ocr=True):
     paginas = paginas_pdf(ruta)
     return {"nombre": ruta.name,
             "id": ruta.stem,
+            # La ruta viaja con el registro porque la lectura asistida puede
+            # necesitar el PDF entero, no sólo el texto que se sacó de él.
+            "ruta": str(ruta),
             "capa": capa,
             "via": via,
             "legible": bool(texto.strip()),

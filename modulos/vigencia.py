@@ -646,6 +646,12 @@ P_EMISION = r"\bEn\s+[A-ZÁÉÍÓÚ][a-záéíóúñ]{2,20}(?:\s+[a-záéíóú�
 # cubre las conjugaciones que aún no he visto, que son las que importan.
 P_INICIO = (r"(?:fecha\s+de\s+inicio[^.\n]{0,30}?ser[áa]|"
             r"comenzar[áa]?\s+a\s+(?:contarse|surtir\s+efectos?)|"
+            # «El plazo comenzará el uno de enero de 2.020» — la forma más
+            # corriente de todas, y no la cubría ninguna alternativa: había
+            # «comenzará a contarse» y «comenzando», pero no el verbo seguido
+            # directamente de la fecha. Va después de las dos anteriores para que
+            # sigan ganando ellas cuando aparezcan.
+            r"comenzar[áa](?=\s+(?:el|desde|a\s+partir|d[íi]a))|"
             r"comenzando\s+a\s+contarse|comenzando|"
             r"(?:a\s+)?contar(?:se)?\s+desde|"
             r"con\s+(?:inicio|efectos?)|"
@@ -1429,15 +1435,22 @@ def verdad_de_campo(docs, fecha_evaluacion=None, modo="determinista"):
             campos, proc = llm.resolver(modo, campos, d["texto"],
                                         FICHA["esquema_campos"],
                                         FICHA["prompt_extraccion"],
-                                        campos_permitidos=CAMPOS_DEL_MODELO)
+                                        campos_permitidos=CAMPOS_DEL_MODELO,
+                                        pdf=d.get("ruta"),
+                                        permiso=llm.permiso_de(FICHA))
             campos = _asegurar_fechas(campos)
             # Nada que aporte el modelo entra sin que su cita esté en el
             # documento, y nada entra si contradice a lo que ya se sabe.
-            campos, proc, desc = llm.anclar(campos, proc, campos.get("citas"),
-                                            d["texto"], CAMPOS_CON_CITA)
+            # `sin_anclaje` son los valores que el modelo ha leído del PDF
+            # y no se han podido comprobar porque del documento no hay
+            # texto: se usan para leer y no puntúan contra el módulo.
+            campos, proc, desc, sin_anclaje = llm.anclar(
+                campos, proc, campos.get("citas"), d["texto"],
+                CAMPOS_CON_CITA)
             campos, proc, incoh = descartar_incoherentes(campos, proc)
             campos = _rederivar(campos, previo, d["texto"])
             campos["descartes_modelo"] = {**desc, **incoh}
+            campos["sin_anclaje_verificable"] = sin_anclaje
             procedencias[d["id"]] = proc
         # ¿Se abstiene el evaluador sobre este documento?
         #
@@ -2502,21 +2515,49 @@ def evaluar(esperados, reportados, fecha_evaluacion=None, repeticion=None,
                  if not sin_plazo else None)
 
     # 9 — cobertura del conjunto                             [criterio transversal]
-    casos[9] = B.caso(
-        bool(esperados) and not contraste["omitidas"] and not contraste["falsas"]
-        and not contraste["duplicadas"],
-        f"Se entregan {len(esperados)} documentos y el módulo emite {len(estados)} "
-        f"registros de estado."
-        + (f" Sin registro: "
-           f"{', '.join(e['id_documento'] for e in contraste['omitidas'])}."
-           if contraste["omitidas"] else "")
+    #
+    # Un documento sin registro tiene DOS explicaciones y el evaluador no puede
+    # distinguirlas: o el módulo lo ha omitido, o quien pegó la salida sólo pegó
+    # una parte. Sobre el corpus de Martín es lo segundo —hay trece documentos y
+    # se han pegado seis fichas— y este caso lo estaba contando como un fallo
+    # suyo: «el módulo no emite registro para siete documentos».
+    #
+    # Es la misma acusación injusta que el caso 7 hacía con las insignias, por el
+    # mismo motivo: tomar un límite de la evidencia disponible por un defecto del
+    # evaluado. Así que las ausencias dejan **pendiente** el caso y declaran qué
+    # falta, mientras que un registro de un documento que no se entregó, o
+    # repetido, sí son fallos del módulo: una salida pegada a medias no puede
+    # inventarse documentos ni duplicarlos.
+    falsas_o_dobles = bool(contraste["falsas"] or contraste["duplicadas"])
+    detalle_9 = (
+        f"Se entregan {len(esperados)} documentos y el módulo emite "
+        f"{len(estados)} registros de estado."
         + (f" Registros que no corresponden a ningún documento entregado: "
            f"{', '.join(r['id_documento'] for r in contraste['falsas'])}."
            if contraste["falsas"] else "")
         + (f" Repetidos: "
            f"{', '.join(r['id_documento'] for r in contraste['duplicadas'])}."
-           if contraste["duplicadas"] else ""),
-        omitir=not esperados)
+           if contraste["duplicadas"] else ""))
+
+    if not esperados:
+        casos[9] = B.caso(False, detalle_9, omitir=True)
+    elif falsas_o_dobles:
+        casos[9] = B.caso(False, detalle_9)
+    elif contraste["omitidas"]:
+        casos[9] = B.caso(
+            False,
+            detalle_9
+            + f" Sin registro: "
+              f"{', '.join(e['id_documento'] for e in contraste['omitidas'])}. "
+              f"No se cuenta como omisión del módulo: con la salida a la vista no "
+              f"puede distinguirse si el módulo no los cubre o si sólo se ha "
+              f"pegado una parte de lo que emite.",
+            omitir=True,
+            requiere=("la salida del módulo para todos los documentos "
+                      "entregados, o la confirmación de que no cubre los que "
+                      "faltan"))
+    else:
+        casos[9] = B.caso(True, detalle_9 + " Cobertura completa.")
 
     # 10 — repetibilidad                                     [criterio transversal]
     if repeticion is None:

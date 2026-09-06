@@ -197,6 +197,57 @@ def estado():
 
 
 # ===========================================================================
+# El veto, comprobado donde se envía el contenido
+# ===========================================================================
+# Cada rama declara `ia_permitida` en su ficha, y en una de ellas el motivo no es
+# técnico: **los documentos de Juan son datos reales de un cliente de
+# GraphyCems**, y el nivel gratuito del proveedor usa el contenido que se le manda
+# para mejorar sus modelos.
+#
+# Hasta ahora ese veto lo respetaba el selector de modo de la interfaz, que
+# devuelve sólo «determinista» cuando la rama lo tiene cerrado. Funciona, y no
+# basta: es un guardia en la puerta principal de una casa con varias puertas.
+# Cualquier código que llame a la lectura asistida desde fuera de esa pantalla
+# —un script, una medición, un flujo nuevo— se salta el veto sin enterarse, y lo
+# que se escapa no es un fallo de cálculo: son documentos de un cliente que no ha
+# dado permiso para esto.
+#
+# Así que el permiso viaja **con la llamada** y se comprueba aquí, en el único
+# sitio por el que pasa todo lo que sale hacia el proveedor. Una rama vetada no
+# puede llegar al modelo por ningún camino, ni por descuido ni por prisa.
+class Vetada(RuntimeError):
+    """Esta rama tiene la lectura asistida cerrada, y no por un fallo técnico."""
+
+
+MOTIVO_POR_DEFECTO = (
+    "Esta rama no declara `ia_permitida`. El permiso se concede a propósito, "
+    "rama por rama, y lo que no está concedido está denegado: un dato de "
+    "cliente no puede salir hacia un proveedor por omisión.")
+
+
+def exigir_permiso(permiso):
+    """
+    `permiso` es (permitida, motivo) — normalmente de la ficha de la rama.
+
+    Levanta `Vetada` si la rama no tiene concedida la lectura asistida. Se llama
+    desde cada entrada pública que manda contenido al proveedor.
+    """
+    if permiso is None:
+        raise Vetada(MOTIVO_POR_DEFECTO)
+    permitida, motivo = permiso
+    if not permitida:
+        raise Vetada(motivo or MOTIVO_POR_DEFECTO)
+
+
+def permiso_de(ficha):
+    """El par (permitida, motivo) que declara una ficha de rama."""
+    if not ficha:
+        return None
+    return (bool(ficha.get("ia_permitida")),
+            ficha.get("motivo_ia") or MOTIVO_POR_DEFECTO)
+
+
+# ===========================================================================
 # Esquemas
 # ===========================================================================
 
@@ -538,6 +589,160 @@ def extraer_con_llm(texto_documento, esquema_campos, prompt, sin_cache=False):
     return _llamar(prompt, texto_documento, esquema_campos, sin_cache)
 
 
+# ---------------------------------------------------------------------------
+# El PDF entero, no el texto que sacó el OCR
+# ---------------------------------------------------------------------------
+# Hasta ahora al modelo se le mandaba **el texto de tesseract**. Eso tiene un
+# techo evidente: si el OCR se come el año —«cuatroúe abril»— el modelo tampoco
+# lo puede recuperar, porque le llega la basura ya hecha. Mandarle el PDF deja
+# que haga su propia lectura de la imagen.
+#
+# Lo que NO cambia es quién decide. El modelo sigue proponiendo valores con una
+# cita, y la cita se sigue verificando contra el texto que tenemos. Si esto se
+# convirtiera en «le pregunto al modelo qué pone y me lo creo», el evaluador
+# dejaría de poder decir cuál de los dos se equivocó cuando discrepe con el
+# módulo — que es la única pregunta que este bloque existe para responder.
+LIMITE_PDF_BYTES = 18 * 1024 * 1024   # por debajo del tamaño de petición cómodo
+
+
+def _partes_pdf(ruta, prompt_extra=""):
+    from google.genai import types
+    datos = Path(ruta).read_bytes()
+    partes = [types.Part.from_bytes(data=datos, mime_type="application/pdf")]
+    if prompt_extra:
+        partes.append(types.Part.from_text(text=prompt_extra))
+    return partes
+
+
+def leer_pdf(ruta, esquema_campos, prompt, sin_cache=False, permiso=None):
+    """
+    PDF -> campos, leyendo el modelo las páginas por su cuenta.
+
+    Devuelve el mismo objeto que `extraer_con_llm`, así que la rama que lo llama
+    no tiene que saber por dónde ha entrado la lectura.
+
+    Lanza `NoDisponible` si el fichero no está, es demasiado grande o el
+    proveedor no lo acepta. Quien llama decide si cae al texto o se abstiene —
+    aquí no se inventa una lectura de repuesto.
+    """
+    exigir_permiso(permiso)
+    if not esta_disponible():
+        raise NoDisponible(por_que_no())
+    ruta = Path(ruta)
+    if not ruta.is_file():
+        raise NoDisponible(f"No está el fichero {ruta.name}.")
+    tam = ruta.stat().st_size
+    if tam > LIMITE_PDF_BYTES:
+        raise NoDisponible(
+            f"{ruta.name} ocupa {tam/1e6:.1f} MB y el límite de esta ruta son "
+            f"{LIMITE_PDF_BYTES/1e6:.0f} MB. Se lee por el texto reconocido.")
+
+    # La huella lleva el contenido del fichero, no su nombre: dos PDF distintos
+    # con el mismo nombre no pueden compartir lectura, y el mismo PDF renombrado
+    # no debería pagarse dos veces. Es la misma regla que gobierna la caché de OCR.
+    huella_fichero = hashlib.sha256(ruta.read_bytes()).hexdigest()[:32]
+    huella = _huella(prompt, f"pdf:{huella_fichero}", esquema_campos)
+    if not sin_cache:
+        guardado = _de_cache(huella)
+        if guardado is not None:
+            ESTADISTICAS["cache"] += 1
+            return guardado
+
+    try:
+        respuesta = _generar(prompt, _partes_pdf(ruta), esquema_campos)
+        salida = json.loads(respuesta.text)
+    except NoDisponible:
+        raise
+    except json.JSONDecodeError as e:
+        ESTADISTICAS["errores"] += 1
+        raise NoDisponible(f"El modelo no ha devuelto JSON válido: {e}") from e
+    except Exception as e:
+        ESTADISTICAS["errores"] += 1
+        raise NoDisponible(f"No se ha podido leer {ruta.name} como PDF: {e}") from e
+
+    ESTADISTICAS["llamadas"] += 1
+    _a_cache(huella, salida)
+    return salida
+
+
+# ---------------------------------------------------------------------------
+# Identificar un documento que el clasificador de la rama no reconoce
+# ---------------------------------------------------------------------------
+# El clasificador determinista de cada rama busca frases literales —«orden de
+# fabricacion», «quantity:»— y eso funciona con los documentos con los que se
+# escribió y con ninguno más. Un pedido del mismo cliente redactado de otra
+# forma sale «No identificado», y a partir de ahí el documento no entra en la
+# evaluación aunque se lea perfectamente.
+#
+# Esto no sustituye al clasificador: se llama **sólo cuando el determinista se
+# rinde**. Lo que la regla reconoce, la regla lo decide; el modelo entra donde la
+# regla no llega, y lo que aporta queda marcado como suyo.
+ESQUEMA_TIPO = {
+    "type": "object",
+    "properties": {
+        "tipo": {"type": "string"},
+        "confianza": {"type": "number"},
+        "por_que": {"type": "string"},
+    },
+    "required": ["tipo", "confianza", "por_que"],
+}
+
+CONFIANZA_MINIMA_TIPO = 0.7
+
+
+def clasificar_con_llm(texto, tipos, sin_cache=False, permiso=None):
+    """
+    ¿De qué tipo es este documento? `tipos` es el diccionario de la rama:
+    identificador -> nombre legible.
+
+    Devuelve (tipo, confianza, por_que) o (None, 0, motivo) si no se atreve. Por
+    debajo de `CONFIANZA_MINIMA_TIPO` no se acepta: clasificar mal un documento
+    es peor que no clasificarlo, porque lo mete en una comparación que no le
+    corresponde y el fallo aparece disfrazado de discrepancia del módulo.
+    """
+    exigir_permiso(permiso)
+    if not esta_disponible():
+        raise NoDisponible(por_que_no())
+    catalogo = "\n".join(f"  · {k} — {v}" for k, v in tipos.items()
+                         if k not in ("desconocido", "sin_texto"))
+    prompt = (
+        "Eres el lector de documentos de un sistema de evaluación. Di de qué "
+        "tipo es el documento que viene a continuación.\n\n"
+        "Tipos posibles (usa EXACTAMENTE uno de estos identificadores):\n"
+        f"{catalogo}\n"
+        "  · desconocido — si no encaja con ninguno con claridad\n\n"
+        "Reglas:\n"
+        "- Decide por el CONTENIDO y por el encabezamiento, nunca por el nombre "
+        "del fichero.\n"
+        "- `confianza` entre 0 y 1. Si dudas entre dos tipos, pon «desconocido» "
+        "con confianza baja: aquí equivocarse cuesta más que abstenerse, porque "
+        "un documento mal clasificado entra en una comparación que no le "
+        "corresponde.\n"
+        "- En `por_que`, cita un fragmento LITERAL del documento que sostenga tu "
+        "elección. Si no puedes citarlo, no lo has encontrado.")
+    salida = _llamar(prompt, (texto or "")[:30000], ESQUEMA_TIPO, sin_cache)
+    tipo = (salida.get("tipo") or "").strip()
+    conf = float(salida.get("confianza") or 0)
+    por_que = salida.get("por_que") or ""
+    if tipo in ("", "desconocido") or tipo not in tipos:
+        return None, conf, (f"el modelo no lo encuadra en ningún tipo conocido "
+                            f"({tipo or 'sin respuesta'})")
+    if conf < CONFIANZA_MINIMA_TIPO:
+        return None, conf, (f"el modelo propone «{tipo}» con confianza {conf:.2f}, "
+                            f"por debajo del mínimo de {CONFIANZA_MINIMA_TIPO}")
+    # `fragmento_presente` devuelve (presente, proporción). Escribirlo como
+    # `not fragmento_presente(...)` nunca es cierto —una tupla no vacía siempre
+    # es verdadera— y la comprobación de anclaje se quedaba en decorado: una
+    # cita inventada pasaba entera. Lo destapó una prueba con un modelo
+    # simulado que devolvía una cita que no existía en el documento.
+    anclada, _prop = fragmento_presente(por_que, texto or "") if por_que \
+        else (False, 0.0)
+    if por_que and not anclada:
+        return None, conf, (f"el modelo propone «{tipo}» pero la cita que da no "
+                            f"aparece en el documento")
+    return tipo, conf, por_que
+
+
 def interpretar_con_llm(texto_respuesta, esquema_salida, prompt, sin_cache=False):
     """Respuesta del módulo -> incidencias. Misma salida que `interpretar()`."""
     return _llamar(prompt, texto_respuesta, esquema_salida, sin_cache)
@@ -687,7 +892,8 @@ def combinar(deterministas, del_modelo, campos_permitidos=None):
     return campos, procedencia
 
 
-def resolver(modo, deterministas, texto, esquema, prompt, campos_permitidos=None):
+def resolver(modo, deterministas, texto, esquema, prompt, campos_permitidos=None,
+             pdf=None, permiso=None):
     """
     Punto único de entrada. Devuelve (campos, procedencia).
 
@@ -713,14 +919,56 @@ def resolver(modo, deterministas, texto, esquema, prompt, campos_permitidos=None
     if not huecos:
         return dict(deterministas), {k: "regla" for k in deterministas}
 
+    # El veto, antes que la disponibilidad: que haya clave no autoriza nada.
+    exigir_permiso(permiso)
+
     if not esta_disponible():
         raise NoDisponible(por_que_no())
 
-    # Nada de lo que devuelve el modelo entra en el núcleo sin pasar por aquí.
-    del_modelo, rechazados = conformar(extraer_con_llm(texto, esquema, prompt),
-                                       esquema)
+    # Si hay PDF, se le manda el PDF.
+    #
+    # Mandarle el texto del OCR le pone al modelo el mismo techo que a las
+    # reglas: si tesseract se comió el año —«cuatroúe abril»— el modelo tampoco
+    # lo puede recuperar, porque le llega la basura ya hecha. Con el PDF hace su
+    # propia lectura de la imagen.
+    #
+    # El texto NO desaparece por eso: sigue siendo contra lo que se verifican las
+    # citas. Son dos cosas distintas —por dónde lee el modelo y contra qué se
+    # comprueba lo que dice— y confundirlas sería quedarse sin la segunda.
+    #
+    # Si la vía del PDF falla, se cae al texto y se sigue. No es degradar en
+    # silencio: el modo no cambia, sólo el canal por el que ha entrado la misma
+    # lectura, y la procedencia lo recoge.
+    crudo, via = None, "texto"
+    if pdf:
+        try:
+            crudo, via = leer_pdf(pdf, esquema, prompt), "pdf"
+        except NoDisponible:
+            crudo = None
+    if crudo is None:
+        crudo = extraer_con_llm(texto, esquema, prompt)
+
+    del_modelo, rechazados = conformar(crudo, esquema)
     marcas = {k: f"modelo (descartado: {m})" for k, m in rechazados.items()}
     campos, procedencia = combinar(deterministas, del_modelo, campos_permitidos)
+
+    # Las citas viajan aparte, y esto no es un detalle.
+    #
+    # `combinar` sólo deja pasar los campos permitidos, y `citas` no es uno de
+    # ellos —no es un dato del documento, es la prueba de los otros—. Así que se
+    # quedaba fuera, y el anclaje se encontraba después un diccionario vacío:
+    # descartaba TODO lo que dijera el modelo con «no aporta el fragmento que lo
+    # sostiene». El modo asistido llamaba al modelo, pagaba la llamada y tiraba
+    # la respuesta entera.
+    #
+    # No se había visto porque este camino nunca se había ejecutado con una clave
+    # de verdad: las pruebas del anclaje le pasaban las citas a mano. Un camino
+    # que sólo se recorre en las pruebas está sin estrenar, no probado.
+    if isinstance((del_modelo or {}).get("citas"), dict):
+        campos["citas"] = del_modelo["citas"]
+
+    procedencia = {k: (f"{v} · leído del PDF" if v == "modelo" and via == "pdf"
+                       else v) for k, v in procedencia.items()}
     return campos, {**procedencia, **marcas}
 
 
@@ -812,13 +1060,42 @@ def anclar(campos, procedencia, citas, texto, exigen_cita):
     valor que se cae en silencio deja al veredicto sin explicación.
     """
     campos, procedencia = dict(campos), dict(procedencia)
-    descartes = {}
+    descartes, sin_verificar = {}, {}
+
+    # Sin texto no hay contra qué verificar, y eso no es lo mismo que fallar.
+    #
+    # Con el PDF, el modelo puede leer un documento del que el OCR no sacó nada.
+    # Entonces la cita que da puede ser perfectamente literal y aquí no hay forma
+    # de comprobarlo: no falta la cita, falta el patrón contra el que medirla.
+    #
+    # Hay tres respuestas posibles y sólo una es honesta. Descartar el valor
+    # tiraría lecturas buenas y dejaría el sistema donde estaba. Aceptarlo como
+    # cualquier otro sería llamar «verificado» a lo que nadie ha verificado —el
+    # error exacto que este bloque le reprocha a los módulos que evalúa—. Así que
+    # el valor **se acepta y se marca**: sirve para leer el documento, y no
+    # puntúa contra el compañero. Un hueco declarado más.
+    # «Hay patrón» es exactamente «el documento se considera legible», y eso ya
+    # está definido en `nucleo/pdf.py`: cuarenta caracteres sin contar espacios.
+    # Inventar aquí un umbral propio habría creado dos definiciones de legible en
+    # el mismo sistema, y la primera versión —veinte palabras— daba por ilegible
+    # una cláusula corta que se leía perfectamente.
+    hay_patron = len(re.sub(r"\s", "", texto or "")) >= 40
+
     for campo in exigen_cita:
-        if procedencia.get(campo) != "modelo" or campos.get(campo) is None:
+        if not str(procedencia.get(campo) or "").startswith("modelo"):
+            continue
+        if campos.get(campo) is None:
             continue
         cita = (citas or {}).get(campo)
         if not cita:
             descartes[campo] = "el modelo no aporta el fragmento que lo sostiene"
+        elif not hay_patron:
+            sin_verificar[campo] = (
+                "el modelo lo ha leído del PDF y del documento no hay texto "
+                "reconocido contra el que comprobar la cita: el valor se usa "
+                "para leer, pero no puntúa contra el módulo")
+            procedencia[campo] = f"{procedencia[campo]} · sin anclaje verificable"
+            continue
         else:
             ok, prop = fragmento_presente(cita, texto)
             if not ok:
@@ -828,4 +1105,4 @@ def anclar(campos, procedencia, citas, texto, exigen_cita):
         if campo in descartes:
             campos[campo] = None
             procedencia[campo] = f"modelo (descartado: {descartes[campo][:60]})"
-    return campos, procedencia, descartes
+    return campos, procedencia, descartes, sin_verificar

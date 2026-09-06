@@ -313,7 +313,10 @@ def interpretar(texto, modo="determinista"):
     """
     texto = (texto or "").strip()
     if not texto:
-        return None, []
+        # Devolver (None, []) dejaba la pantalla en blanco sin explicación: ni
+        # datos ni motivo. Las cuatro ramas avisan de lo mismo con las mismas
+        # palabras, porque para quien lo lee es el mismo suceso.
+        return None, ["No hay exportación que interpretar."]
     try:
         datos = json.loads(texto)
     except json.JSONDecodeError as e:
