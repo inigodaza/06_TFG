@@ -10,6 +10,7 @@ Tres pantallas:
   · Esquema           — por dónde circula un dato y qué hace cada módulo
 """
 
+import html
 import json
 import tempfile
 from datetime import date
@@ -57,8 +58,8 @@ if _sin_subir:
 import esquema
 import modulos
 import ui
-from demo import guion, hilo
-from modulos import contradicciones, similitud, vigencia
+from demo import caso, guion
+from modulos import auditoria, contradicciones, similitud, vigencia
 from nucleo import VERSION
 from nucleo import asesor, autoridad, clasificacion, historial, llm, plantilla
 from nucleo import bateria as B_NUCLEO
@@ -94,7 +95,8 @@ PIEZAS = [
                    "franja_sistema", "franja_cifras", "fila_medidores",
                    "diagnostico_modelos", "selector_modo_lectura",
                    "tabla_documentos:extraer", "panel_contradicciones",
-                   "panel_cambios"]),
+                   "panel_cambios", "linea_del_hilo", "cabecera_fase",
+                   "lecturas_de_campo"]),
     ("nucleo/bateria.py", B_NUCLEO, ["SEVERIDADES", "ORDEN_SEVERIDAD"]),
     ("nucleo/plantilla.py", plantilla, ["filas", "a_markdown", "severidad_de"]),
     ("nucleo/asesor.py", asesor, ["aconsejar", "verificar_anclaje"]),
@@ -105,8 +107,8 @@ PIEZAS = [
     ("modulos/vigencia.py", vigencia, ["conciliar_ids", "PRORROGAS",
                                        "SALIDA_IALERT_CRED", "SALIDA_IALERT_TODAS", "familia_de",
                                        "descartar_incoherentes", "FAMILIAS"]),
-    ("demo/hilo.py", hilo, ["PASOS", "HECHO", "REGLA",
-                            "estado_de_los_datos"]),
+    ("demo/caso.py", caso, ["observar", "gobernar", "decidir", "comprobar",
+                            "numero_de_pedido", "LECTURAS_DE_CAMPO", "REGLA"]),
     ("nucleo/autoridad.py", autoridad,
      ["tiene_autoridad", "quien_manda_sobre", "cargar", "confirmada",
       "categorias_confirmadas"]),
@@ -224,8 +226,11 @@ elif "spa" not in P.idiomas_ocr():
 # Navegación
 # ===========================================================================
 
-PANTALLAS = ["Evaluar un módulo", "El hilo", "Demo",
-             "Esquema del sistema"]
+# Tres pantallas, no cinco. «El hilo» y «Demo» eran la misma cosa contada dos
+# veces —una con un texto escrito a mano y otra módulo a módulo— y ninguna de las
+# dos dejaba meter un caso y verlo recorrer el sistema. Ahora es una sola y se
+# ejecuta con los documentos que le pongas delante.
+PANTALLAS = ["Seguir un caso", "Evaluar un módulo", "Esquema del sistema"]
 
 with st.sidebar:
     st.markdown('<div class="eyebrow">TFG · Íñigo Daza</div>'
@@ -287,225 +292,242 @@ ICONO = {"ejecutado": ("p-bien", "✓", "Ejecutado"),
          "no_operativo": ("p-espera", "◌", "No operativo")}
 
 
-def pantalla_hilo():
+def pantalla_caso():
     """
-    Una sola incongruencia recorriendo tres módulos.
+    Un caso, de la discrepancia a la decisión, ejecutándose.
 
-    La demo por módulos enseña cinco cosas seguidas y cada una se entiende sola.
-    Lo que no enseña es el sistema: que los cinco trabajos son partes de un mismo
-    recorrido y que el fallo de uno se convierte en el trabajo del siguiente.
-    Aquí se sigue un solo hecho —una cantidad que no cuadra— de principio a fin.
+    Antes esto eran dos pantallas. «El hilo» contaba el recorrido con un texto
+    escrito a mano —decía lo mismo con datos que sin ellos— y «Demo» ejecutaba
+    las baterías módulo a módulo, cada una por su lado, de modo que no se veía
+    que fueran partes del mismo caso. Son la misma cosa contada dos veces y mal
+    las dos.
+
+    Ahora es una sola: entran la orden de fabricación y el pedido de cliente, y
+    de ahí sale todo. La discrepancia la deduce el evaluador leyendo los PDF; la
+    respuesta del módulo de Juan se pega y se contrasta; la autoridad sale de la
+    matriz de Pablo; la decisión, de la exportación de Mencía. Ninguna fase
+    escribe un resultado a mano y ninguna finge tener datos que no tiene.
     """
-    h = hilo.HECHO
+    ficha_j = auditoria.FICHA
     st.markdown(
         '<div class="hero"><div class="eyebrow">Un hecho, cuatro manos</div>'
-        f'<h1>El pedido {h["pedido"]}, de la discrepancia a la decisión</h1>'
-        '<div class="meta">La misma incongruencia recorriendo los módulos del '
-        'equipo. Cada paso dice quién lo hace, qué comprueba el evaluador y '
-        'hasta dónde llegan los datos que hay hoy.</div></div>',
-        unsafe_allow_html=True)
+        '<h1>Seguir un caso de la discrepancia a la decisión</h1>'
+        '<div class="meta">Mete la orden de fabricación y el pedido de cliente. '
+        'A partir de ahí el recorrido se ejecuta: qué discrepancia hay, si el '
+        'módulo de Juan la vio, de quién es la decisión según la matriz de '
+        'Pablo, quién la validó según el módulo de Mencía y si todo eso se '
+        'sostiene.</div></div>', unsafe_allow_html=True)
+
+    # ---------------------------------------------------------------- 0 · datos
+    docs = subir_documentos(ficha_j, "caso", carpeta_demo=["auditoria", "ejemplo"])
+
+    docs, avisos_tipo = clasificacion.anotar_tipos(
+        docs, auditoria.clasificar, auditoria.TIPOS, "determinista",
+        permiso=llm.permiso_de(ficha_j))
+    for _a in avisos_tipo:
+        st.info(_a)
+
+    try:
+        esperados, contexto = auditoria.verdad_de_campo(docs, "determinista")
+    except ValueError as e:
+        st.error(str(e))
+        st.stop()
+
+    pedido = caso.numero_de_pedido(contexto)
+
+    # ------------------------------------------------------- 1 · OBSERVAR
+    ui.cabecera_fase(1, "Observar", "¿Qué no cuadra en este pedido?",
+                     "Juan Salas · módulo de auditoría documental")
+
+    if not esperados:
+        st.success("El evaluador ha leído los dos documentos y **no encuentra "
+                   "ninguna discrepancia** entre ellos. Sin discrepancia no hay "
+                   "caso que seguir: el recorrido se queda aquí, y eso es un "
+                   "resultado, no un fallo.")
+        st.stop()
+
+    st.markdown("**Lo que ha encontrado el evaluador por su cuenta**")
+    st.caption("Esta mitad no depende de nadie: son los dos PDF leídos y "
+               "comparados campo a campo. Es la verdad de campo contra la que se "
+               "contrastará todo lo demás.")
+    st.dataframe(pd.DataFrame([{
+        "Campo": e["etiqueta"],
+        "Dice el cliente": e["valor_cliente"],
+        "Dice la orden": e["valor_orden"],
+        "Gravedad si se propaga": e["severidad_esperada"],
+    } for e in esperados]), use_container_width=True, hide_index=True)
+
+    st.markdown("**La respuesta del módulo de Juan**")
+    st.caption(ficha_j["entrada_respuesta"])
+    if "resp_caso" not in st.session_state:
+        st.session_state.resp_caso = ""
+    b1, b2 = st.columns([1, 3])
+    if b1.button("Pegar la respuesta del 42805", use_container_width=True,
+                 key="btn_ej_caso"):
+        st.session_state.resp_caso = auditoria.EJEMPLO
+    b2.caption("Atajo para la demostración: carga la respuesta que el módulo "
+               "emitió sobre el pedido 42805.")
+    respuesta = st.text_area("Respuesta del módulo", key="resp_caso", height=170,
+                             label_visibility="collapsed")
+    reportados, avisos = auditoria.interpretar(respuesta, "determinista")
+    for a in avisos:
+        st.warning(a)
+
+    obs = caso.observar(esperados, reportados)
+    principal = obs["principal"]
 
     ui.fila_kpis([
-        ui.kpi("El pedido dice", f'{h["valor_cliente"]:,}'.replace(",", "."),
-               "ejemplares pedidos por el cliente"),
-        ui.kpi("La orden dice", f'{h["valor_orden"]:,}'.replace(",", "."),
-               "ejemplares a fabricar", acento=True),
-        ui.kpi("Diferencia",
-               f'{h["valor_orden"] - h["valor_cliente"]:,}'.replace(",", "."),
-               "libros que nadie ha pedido"),
+        ui.kpi("Dice el cliente", str(principal["valor_cliente"]),
+               principal["etiqueta"].lower()),
+        ui.kpi("Dice la orden", str(principal["valor_orden"]),
+               "lo que se iba a fabricar", acento=True),
+        ui.kpi("Vistas por el módulo", f'{len(obs["vistas"])}/'
+               f'{len(obs["discrepancias"])}',
+               "discrepancias reales que Juan reporta"),
     ])
+    if obs["no_vistas"]:
+        st.warning("**No las reporta:** "
+                   + ", ".join(e["etiqueta"] for e in obs["no_vistas"])
+                   + ". Existen en los documentos y el módulo no las menciona.")
+    if obs["inventadas"]:
+        st.error("**Reporta lo que el evaluador no encuentra:** "
+                 + ", ".join(str(r.get("campo")) for r in obs["inventadas"])
+                 + ". Puede ser un acierto suyo o un falso positivo; en cualquier "
+                   "caso no se sostiene sobre estos dos documentos.")
+    if not obs["no_vistas"] and not obs["inventadas"]:
+        st.success(f"El módulo reporta exactamente las discrepancias que "
+                   f"sostienen los documentos. El caso sigue con "
+                   f"**{principal['etiqueta'].lower()}**, la más grave.")
 
-    estado = hilo.estado_de_los_datos()
-    if not estado["hilo_completo"]:
-        ui.nota("<b>El hilo llega hasta donde llegan los datos.</b> Los pasos que "
-                "no se pueden ejecutar se enseñan con su motivo y con lo que "
-                "haría falta para cerrarlos. Un recorrido que fingiera el último "
-                "paso sería una demo más bonita y una demostración peor: lo que "
-                "se está demostrando es justamente que el sistema distingue lo "
-                "comprobado de lo supuesto.")
+    # ------------------------------------------------------- 2 · GOBERNAR
+    gob = caso.gobernar(principal)
+    ui.cabecera_fase(2, "Gobernar", "¿De quién es esta decisión?",
+                     "Pablo Morillas · ontología de validación",
+                     "ejecutada" if gob.get("acuerdo") else
+                     "parcial" if gob.get("disponible") else "pendiente")
 
-    COLOR_FASE = {"OBSERVAR": "p-acento", "GOBERNAR": "p-neutro",
-                  "DECIDIR": "p-acento", "COMPROBAR": "p-bien"}
-    for paso in hilo.PASOS:
-        with st.container(border=True):
-            c1, c2 = st.columns([1, 5])
-            c1.markdown(
-                f'<div class="p {COLOR_FASE.get(paso["fase"], "p-neutro")}">'
-                f'{paso["fase"]}</div>', unsafe_allow_html=True)
-            c1.caption(f"paso {paso['n']}")
-            c2.markdown(f"### {paso['titulo']}")
-            c2.caption(f"{paso['responsable']}")
+    if not gob.get("disponible"):
+        ui.nota(f'<b>{gob["motivo"]}</b>'
+                + (f' Falta {gob["requiere"]}.' if gob.get("requiere") else ""),
+                tono="espera")
+    else:
+        st.markdown(f"Alguien tiene que decidir cuál de los dos valores vale. La "
+                    f"organización no es plana: la matriz de Pablo reparte el "
+                    f"mando en tres áreas y tres niveles. La pregunta es a qué "
+                    f"área pertenece **{gob['etiqueta'].lower()}**.")
+        ui.lecturas_de_campo(gob["lecturas"])
+        if gob["acuerdo"]:
+            st.success("Las dos fuentes coinciden en el ámbito, así que el "
+                       "responsable no está en duda.")
+        else:
+            # No es un aviso ni un fallo: es una pregunta abierta, y va del color
+            # que este sistema usa para eso.
+            ui.nota(
+                "<b>Las dos lecturas dan responsables distintos.</b> La matriz la "
+                "entregó Pablo y responde de ella; lo que no ha escrito nadie es "
+                "de qué área es cada <b>campo</b> de un pedido. Mencía va de "
+                "contradicción a categoría, Pablo va de rol a área, y la pieza "
+                "del medio no está en ninguno de los dos. El evaluador no elige "
+                "por él: enseña las dos y sigue.", tono="espera")
 
-            st.markdown(paso["que_pasa"])
-            st.markdown(f"**Quién lo dice.** {paso['quien_lo_dice']}")
-            st.markdown(f"**Qué hace el evaluador.** {paso['que_hace_el_evaluador']}")
+    # ------------------------------------------------------- 3 · DECIDIR
+    # La cabecera se reserva y se rellena al final: su estado depende de si hay
+    # exportación, y eso no se sabe hasta después de pintar los dos cargadores.
+    # Escribirlo a mano dejaría el punto en discontinuo para siempre, incluso el
+    # día en que Mencía mande el fichero — que es justo el error que este bloque
+    # le reprocha a los demás.
+    hueco_fase_3 = st.empty()
+    st.caption("Quien no tiene autoridad suficiente propone; quien la tiene "
+               "valida. Para comprobarlo hace falta su exportación de este "
+               "pedido: antes y después de resolver, porque una sola foto no "
+               "enseña qué cambió ni qué se perdió por el camino.")
 
-            if paso["estado"] == "parcial":
-                st.warning(f"**Este paso está a medias.** Falta {paso['requiere']}.")
-            elif paso.get("requiere"):
-                st.info(f"Pendiente: {paso['requiere']}.")
+    c1, c2 = st.columns(2)
+    ex_antes = c1.file_uploader("Exportación ANTES de resolver", type=["json"],
+                               key="caso_antes")
+    ex_despues = c2.file_uploader("Exportación DESPUÉS de resolver", type=["json"],
+                                 key="caso_despues")
 
-    st.markdown("---")
-    st.markdown(f"### «{hilo.REGLA}»")
-    st.caption("La regla del flujo que dibujó el equipo. Las tres palabras son "
-               "tres módulos distintos, y la última es este bloque.")
+    def _leer(f):
+        if not f:
+            return None
+        d, avs = contradicciones.interpretar(f.getvalue().decode("utf-8"))
+        for a in avs:
+            st.warning(f"{f.name}: {a}")
+        return d
 
-    with st.expander("Qué datos hay hoy para recorrer el hilo"):
-        st.markdown(
-            f"- Documentos del pedido {h['pedido']}: "
-            f"**{', '.join(estado['documentos_del_pedido']) or 'ninguno en el repositorio'}** "
-            f"(son documentación de cliente y no se versionan)\n"
-            f"- Matriz de autoridad de Pablo: "
-            f"**{'cargada' if estado['ontologia'] else 'no está'}**\n"
-            f"- Exportaciones de Mencía: "
-            f"**{', '.join(estado['exportaciones']) or 'ninguna'}**\n"
-            f"- Para este pedido en concreto: "
-            f"**{', '.join(estado['exportacion_del_pedido']) or 'ninguna todavía'}**")
+    d_antes, d_despues = _leer(ex_antes), _leer(ex_despues)
+    dec = caso.decidir(gob, d_antes, d_despues, pedido=pedido)
+    with hueco_fase_3.container():
+        ui.cabecera_fase(3, "Decidir", "Alguien valida, y la decisión se guarda",
+                         "Mencía Viñuelas · cadena de validación",
+                         "ejecutada" if dec.get("disponible")
+                         and not dec.get("requiere") else
+                         "parcial" if dec.get("disponible") else "pendiente")
 
-
-def pantalla_demo():
-    st.markdown('<div class="hero"><div class="eyebrow">Recorrido completo</div>'
-                '<h1>Demo</h1><div class="meta">El sistema módulo a módulo. Un paso '
-                'que no puede ejecutarse se enseña con el motivo: el recorrido cuenta '
-                'el estado real del proyecto, no el previsto.</div></div>',
-                unsafe_allow_html=True)
-
-    fecha = st.date_input("Fecha de evaluación", value=date.today(),
-                          help="La vigencia depende de cuándo se pregunta. Fijarla "
-                               "aquí hace el recorrido reproducible.")
-
-    # Se ejecuta todo primero para poder encabezar el recorrido con su resultado.
-    # Una demo que empieza por el paso 1 obliga a llegar al final para saber cómo
-    # acaba; ésta dice desde arriba qué ha encontrado y qué le falta.
-    recorrido = [(paso,) + guion.ejecutar_paso(paso, fecha) for paso in guion.PASOS]
-    ejecutados = [(p, d) for p, e, d in recorrido if e == "ejecutado"]
-    bloqueados = [(p, d) for p, e, d in recorrido if e == "a_medias"]
-    sin_bateria = [(p, d) for p, e, d in recorrido if e == "no_operativo"]
-
-    fallos = []
-    for paso, datos in ejecutados:
-        ficha = datos["ficha"]
-        for n, caso in sorted(datos["ev"]["casos"].items()):
-            if caso["resultado"] == "no_pasa":
-                fallos.append({"modulo": ficha["nombre"], "caso": n,
-                               "titulo": ficha["casos"][n],
-                               "severidad": plantilla.severidad_de(ficha, n),
-                               "esperado": caso.get("esperado"),
-                               "observado": caso.get("observado")})
-
-    ui.franja_cifras([
-        (f"{len(ejecutados)}/{len(recorrido)}", "pasos ejecutados"),
-        (len(bloqueados), "bloqueados por datos ajenos"),
-        (sum(len(d["ev"]["casos"]) for _, d in ejecutados), "casos ejercitados hoy"),
-        (len(fallos), "fallos con evidencia"),
-    ])
-
-    ui.nota("<b>Dónde termina el sistema.</b> El evaluador recibe la salida de un "
-            "módulo, calcula por su cuenta cuál debería haber sido y contrasta. "
-            "<b>La salida se le entrega</b> —pegada o subida— porque ninguno de los "
-            "cinco módulos publica un punto de acceso al que conectarse. Construir "
-            "ese puente exigiría que cada compañero publicara y mantuviera un "
-            "contrato técnico, y sobre prototipos que cambian cada semana dejaría de "
-            "poder distinguirse si falla el módulo o falla el puente.")
-
-    if fallos:
-        st.subheader("Qué ha encontrado este recorrido")
-        st.caption("Fallos con evidencia directa, encontrados hoy por las baterías "
-                   "que sí han podido ejecutarse. No son opiniones sobre el código "
-                   "ajeno: cada uno tiene un esperado y un observado detrás.")
-        for f in fallos:
-            sev = f["severidad"]
-            color = (B_NUCLEO.SEVERIDADES[sev][2]
-                     if sev in B_NUCLEO.SEVERIDADES else "#898781")
+    if not dec.get("disponible"):
+        ui.nota(f"<b>{dec['motivo']}</b> Falta {dec['requiere']}.", tono="espera")
+        st.caption("El paso no se inventa. Un recorrido que fingiera esta parte "
+                   "sería una demo más bonita y una demostración peor: lo que se "
+                   "está demostrando es que el sistema distingue lo comprobado "
+                   "de lo supuesto.")
+    else:
+        for v in dec["veredictos"]:
             with st.container(border=True):
-                st.markdown(
-                    f'<div style="border-left:4px solid {color};padding-left:.75rem">'
-                    f'<b>{f["modulo"]} · caso {f["caso"]}</b> — {f["titulo"]}<br>'
-                    f'<span style="font-size:.78rem;color:{color};font-weight:700;'
-                    f'text-transform:uppercase;letter-spacing:.05em">'
-                    f'{B_NUCLEO.SEVERIDADES[sev][0] if sev in B_NUCLEO.SEVERIDADES else "—"}'
-                    f'</span></div>', unsafe_allow_html=True)
-                if f["esperado"] and f["observado"]:
-                    a, b = st.columns(2)
-                    a.markdown(f"<span style='font-size:.7rem;font-weight:700;"
-                               f"letter-spacing:.06em;color:#898781'>ESPERADO</span>"
-                               f"<br>{f['esperado']}", unsafe_allow_html=True)
-                    b.markdown(f"<span style='font-size:.7rem;font-weight:700;"
-                               f"letter-spacing:.06em;color:#898781'>OBSERVADO</span>"
-                               f"<br>{f['observado']}", unsafe_allow_html=True)
+                st.markdown(f"**{v['campo']}** — resuelto por "
+                            f"**{v['revisor'] or 'nadie identificado'}**")
+                for p in v["por_lectura"]:
+                    pastilla = ("p-bien", "✓", "Tenía autoridad") if p["podia"] is True \
+                        else ("p-mal", "✕", "No tenía autoridad") if p["podia"] is False \
+                        else ("p-espera", "◌", "No se puede saber")
+                    st.markdown(
+                        f'{ui.pastilla(pastilla[2], pastilla[0], pastilla[1])} '
+                        f'<span style="font-size:.85rem;color:#52514e">si '
+                        f'«{p["categoria"]}» — {p["motivo"]}</span>',
+                        unsafe_allow_html=True)
+            if not v["concluyente"]:
+                # El nombre viene de la exportación de otro módulo: se escapa.
+                quien = html.escape(str(v["revisor"] or "quien resolvió"))
+                ui.nota(
+                    f"<b>La misma validación sale bien y mal según el mapa que "
+                    f"falta.</b> {quien} tenía "
+                    f"autoridad bajo una lectura y no bajo la otra. No es una "
+                    f"duda del evaluador sobre Mencía: es que la pregunta no se "
+                    f"puede cerrar hasta que Pablo escriba de qué área es este "
+                    f"campo. <b>Ésta es exactamente la pregunta que ningún "
+                    f"módulo puede contestar solo</b>, y por eso hace falta un "
+                    f"bloque que tenga los dos delante.", tono="espera")
+        if dec.get("hay_comparacion"):
+            ui.panel_cambios(d_antes, d_despues, contradicciones.comparar_estados)
+        elif dec["veredictos"]:
+            st.caption("Con una sola exportación se puede comprobar quién validó, "
+                       "pero no qué cambió al validar. Sube también la otra.")
 
-    st.subheader("El recorrido, paso a paso")
+    # ------------------------------------------------------- 4 · COMPROBAR
+    comp = caso.comprobar(obs, gob, dec)
+    ui.cabecera_fase(4, "Comprobar", "¿Es correcto y reproducible?",
+                     "Íñigo Daza · bloque de evaluación y calidad")
 
-    for paso, estado, datos in recorrido:
-        clase, glifo, palabra = ICONO[estado]
-        with st.expander(paso["titulo"], expanded=(estado == "ejecutado")):
-            st.markdown(ui.pastilla(palabra, clase, glifo), unsafe_allow_html=True)
-            st.write(paso["relato"])
+    st.markdown(f"El recorrido llega hasta donde llegan los datos: "
+                f"**{comp['recorrido']} de {comp['total']} fases** se han podido "
+                f"ejecutar enteras. Ni el estado de cada una ni lo que le falta "
+                f"están escritos a mano: los declara la propia fase, así que esto "
+                f"no puede quedarse obsoleto cuando lleguen los datos.")
 
-            if estado == "no_operativo":
-                ui.nota(datos["motivo"])
-                n = len(datos["ficha"]["casos"])
-                st.caption(f"Batería diseñada: {n} casos. Diseñada no es ejecutada."
-                           if n else "Sin batería diseñada todavía.")
-                continue
+    # La espina se rellena con los datos, no con el scroll: se vuelve discontinua
+    # exactamente donde el recorrido se corta.
+    ui.linea_del_hilo(comp["fases"], caso.REGLA)
 
-            if estado == "a_medias":
-                ui.nota(datos["motivo"], acento=True)
-                # Un paso bloqueado no es un hueco: es media evaluación hecha. Se
-                # enseña lo que ya está calculado para que se vea qué falta
-                # exactamente y de quién depende.
-                if datos.get("esperados"):
-                    st.markdown("**Lo que ya está calculado: la verdad de campo**")
-                    st.caption("Esta mitad no depende de nadie. El evaluador ha leído "
-                               "los documentos y ha deducido qué estado corresponde a "
-                               "cada uno. Lo que falta es la otra mitad del "
-                               "contraste: la salida del módulo.")
-                    st.dataframe(pd.DataFrame([{
-                        "Documento": e["id_documento"],
-                        "Vence": e["fecha_caducidad"].strftime("%d/%m/%Y")
-                                 if e["fecha_caducidad"] else "—",
-                        "Estado que sostienen los documentos":
-                            vigencia.ESTADOS[e["estado"]],
-                        "Por qué": e["motivo"],
-                    } for e in datos["esperados"]]), use_container_width=True,
-                        hide_index=True)
-                n = len(datos["ficha"]["casos"])
-                st.caption(f"Batería diseñada y lista: {n} casos. En cuanto llegue la "
-                           f"salida, este paso se ejecuta sin tocar una línea de "
-                           f"código.")
-                continue
-
-            ficha, ev, er = datos["ficha"], datos["ev"], datos["er"]
-            c = ev["contraste"]
-            ui.fila_medidores([
-                ui.medidor("Exhaustividad", c["exhaustividad"],
-                           "de lo que había que resolver"),
-                ui.medidor("Precisión", c["precision"],
-                           "de lo emitido se sostiene"),
-            ])
-            ui.barra_bateria(B_NUCLEO.resumen(ev["casos"]))
-            st.write(er["valoracion"])
-
-    if bloqueados or sin_bateria:
-        st.subheader("Qué falta, y de quién depende")
-        st.caption("Ninguno de estos puntos es un defecto del evaluador ni de los "
-                   "módulos: son datos que el banco de pruebas todavía no tiene. La "
-                   "lista la calcula el propio sistema.")
-        filas = []
-        for paso, datos in bloqueados:
-            filas.append({"Paso": datos["ficha"]["nombre"],
-                          "Responsable": datos["ficha"]["responsable"],
-                          "Qué falta": datos.get("motivo", "")})
-        for paso, datos in sin_bateria:
-            filas.append({"Paso": datos["ficha"]["nombre"],
-                          "Responsable": datos["ficha"]["responsable"],
-                          "Qué falta": datos.get("motivo", "")})
-        for paso, datos in ejecutados:
-            for q in datos["er"].get("requisitos", []):
-                filas.append({"Paso": datos["ficha"]["nombre"],
-                              "Responsable": datos["ficha"]["responsable"],
-                              "Qué falta": f"caso {q['caso']} — {q['requiere']}"})
-        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+    with st.expander("Evaluar a fondo el módulo de Juan sobre estos documentos"):
+        st.caption("Este recorrido enseña el caso. La batería completa —los 12 "
+                   "casos, las dos métricas, el veredicto y el informe— está en "
+                   "«Evaluar un módulo».")
+        st.dataframe(pd.DataFrame([{
+            "Campo": etiqueta,
+            "Documentación de cliente": contexto["cliente"].get(k, "—"),
+            "Orden de fabricación": contexto["orden"].get(k, "—"),
+        } for k, etiqueta in auditoria.ETIQUETAS.items()]),
+            use_container_width=True, hide_index=True)
 
 
 # ===========================================================================
@@ -586,7 +608,13 @@ def subir_documentos(ficha, clave, carpeta_demo=None):
     st.subheader("1 · Documentos")
     st.caption(ficha["entrada"])
 
-    disponibles = guion.documentos_de(carpeta_demo) if carpeta_demo else []
+    # `carpeta_demo` admite una carpeta o varias. La pantalla del caso ofrece dos:
+    # la de los documentos reales —que no se versionan por ser documentación de
+    # cliente— y la del par sintético, para que el recorrido se pueda enseñar en
+    # un despliegue limpio en vez de quedarse pidiendo ficheros que no están.
+    carpetas = ([carpeta_demo] if isinstance(carpeta_demo, str)
+                else list(carpeta_demo or []))
+    disponibles = [d for c in carpetas for d in guion.documentos_de(c)]
     por_nombre = {d["id"]: d for d in disponibles}
     docs = []
 
@@ -597,22 +625,30 @@ def subir_documentos(ficha, clave, carpeta_demo=None):
                    f"({listos} legibles). Elegirlos de aquí no necesita OCR ni "
                    f"esperar: el texto ya está reconocido y viaja con el "
                    f"repositorio.")
+        # Los botones no pueden escribir en la clave del propio `multiselect`:
+        # Streamlit prohíbe tocar el estado de un widget que ya se ha creado en
+        # esta ejecución, y lo hace con una excepción que se lleva la pantalla
+        # entera por delante. Se deja el encargo en otra clave y se aplica aquí,
+        # **antes** de instanciarlo, que es el único momento en que está
+        # permitido. Con las carpetas vacías el fallo nunca llegó a verse.
+        encargo = st.session_state.pop(f"sel_pend_{clave}", None)
+        if encargo is not None:
+            st.session_state[f"sel_docs_{clave}"] = encargo
         elegidos = st.multiselect(
             "Elige los documentos que quieres evaluar",
             options=sorted(por_nombre),
-            default=st.session_state.get(f"sel_docs_{clave}") or [],
             key=f"sel_docs_{clave}",
             format_func=lambda n: n.replace("_", " "))
         c1, c2 = st.columns(2)
         if c1.button("Seleccionar todos", key=f"todos_{clave}",
                      use_container_width=True):
-            st.session_state[f"sel_docs_{clave}"] = sorted(por_nombre)
+            st.session_state[f"sel_pend_{clave}"] = sorted(por_nombre)
             st.rerun()
         if c2.button("Quitar la selección", key=f"ninguno_{clave}",
                      use_container_width=True):
-            st.session_state[f"sel_docs_{clave}"] = []
+            st.session_state[f"sel_pend_{clave}"] = []
             st.rerun()
-        docs = [por_nombre[n] for n in elegidos]
+        docs = [por_nombre[n] for n in elegidos if n in por_nombre]
 
     with st.expander("…o subir documentos nuevos", expanded=not disponibles):
         st.caption(
@@ -1371,9 +1407,7 @@ def pantalla_evaluar():
 
 if pantalla == "Esquema del sistema":
     pantalla_esquema()
-elif pantalla == "El hilo":
-    pantalla_hilo()
-elif pantalla == "Demo":
-    pantalla_demo()
+elif pantalla == "Seguir un caso":
+    pantalla_caso()
 else:
     pantalla_evaluar()

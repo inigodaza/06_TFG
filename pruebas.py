@@ -2799,41 +2799,173 @@ if _RUTA_PED.is_file():
               "sigue intacta", str({k: v for k, v in _cmb.items() if v}))
 
 # ---------------------------------------------------------------------------
-print("\n35 · El hilo: un hecho recorriendo tres módulos")
-# La demo por módulos enseña cinco cosas seguidas y cada una se entiende sola. Lo
-# que no enseña es el sistema. El hilo sigue una sola incongruencia —la cantidad
-# del pedido 42805— desde que aparece hasta que alguien decide, y el recorrido
-# es el mismo que dibujó el equipo: observar, gobernar, decidir, comprobar.
-from demo import hilo as _HILO
+print("\n35 · Seguir un caso: una discrepancia recorriendo cuatro trabajos")
+# Antes esto eran dos pantallas y un guion escrito a mano. Ahora las cuatro fases
+# son funciones que reciben datos y devuelven un estado, así que se pueden
+# comprobar sin abrir la interfaz — que es la única manera de que el recorrido de
+# la demo no sea lo único del sistema que nadie verifica.
+from demo import caso as _CASO
 
-comprobar([p["fase"] for p in _HILO.PASOS]
-          == ["OBSERVAR", "GOBERNAR", "DECIDIR", "COMPROBAR"],
-          "Los cuatro pasos siguen las fases del flujo acordado por el equipo")
-comprobar([p["responsable"] for p in _HILO.PASOS]
-          == ["Juan Salas", "Pablo Morillas", "Mencía Viñuelas", "Íñigo Daza"],
-          "…y cada fase tiene un dueño distinto: el hilo cruza cuatro trabajos")
-comprobar(_HILO.HECHO["valor_cliente"] == 3000
-          and _HILO.HECHO["valor_orden"] == 30000,
-          "El hecho que recorre el hilo es la incongruencia real del 42805, la "
-          "misma que el evaluador dedujo leyendo los documentos de Juan")
+# La discrepancia real del 42805, tal como la devuelve `auditoria.verdad_de_campo`.
+_ESP = [{"campo": "cantidad", "etiqueta": "Cantidad", "valor_cliente": "3000",
+         "valor_orden": "30000", "severidad_esperada": "critica"},
+        {"campo": "gramaje_cubierta", "etiqueta": "Gramaje de cubierta",
+         "valor_cliente": "240", "valor_orden": "250",
+         "severidad_esperada": "media"}]
 
-_estado = _HILO.estado_de_los_datos()
-comprobar(set(_estado) >= {"hay_documentos", "ontologia", "exportacion_del_pedido",
-                           "hilo_completo"},
-          "El hilo declara qué datos hay mirando el disco, no escribiéndolo a mano")
-comprobar(_estado["hilo_completo"] is False,
-          "Hoy el hilo NO está completo, y lo dice: falta la exportación de "
-          "Mencía para este pedido. Un guion que afirmara tener datos que no "
-          "están sería el primer error que este sistema reprocha a los demás",
-          str(_estado["hilo_completo"]))
-_parciales = [p for p in _HILO.PASOS if p["estado"] == "parcial"]
-comprobar(len(_parciales) == 1 and _parciales[0]["modulo"] == "contradicciones"
-          and bool(_parciales[0]["requiere"]),
-          "El paso que está a medias es el de Mencía, y declara exactamente qué "
-          "le falta")
-comprobar("evidencia" in _HILO.REGLA and "autoridad" in _HILO.REGLA
-          and "evaluación" in _HILO.REGLA,
-          "La regla del hilo nombra las tres cosas, y la tercera es este bloque")
+_obs = _CASO.observar(_ESP, [{"campo": "cantidad", "tipo": "incongruencia"}])
+comprobar(_obs["principal"]["campo"] == "cantidad",
+          "El caso lo conduce la discrepancia más grave, no la primera que "
+          "aparece: 3.000 contra 30.000 manda sobre un gramaje")
+comprobar(len(_obs["vistas"]) == 1 and len(_obs["no_vistas"]) == 1
+          and not _obs["inventadas"],
+          "Se empareja lo que dice el módulo con lo que sostienen los "
+          "documentos: una vista, una que no reporta, ninguna inventada")
+_obs_vacio = _CASO.observar([], [{"campo": "cantidad"}])
+comprobar(_obs_vacio["hay_caso"] is False and len(_obs_vacio["inventadas"]) == 1,
+          "Sin discrepancia real no hay caso que seguir, y lo que el módulo "
+          "reporta encima se marca como no sostenido por los documentos")
+
+_gob = _CASO.gobernar(_obs["principal"])
+comprobar(_gob["disponible"] and len(_gob["lecturas"]) == 2,
+          "«Cantidad» admite dos lecturas de ámbito y se enseñan las dos")
+comprobar(_gob["acuerdo"] is False and bool(_gob["requiere"]),
+          "…y como dan responsables distintos, el evaluador declara el "
+          "desacuerdo en vez de elegir por Pablo")
+comprobar({r for l in _gob["lecturas"] for r in l["manda"]}
+          >= {"Dir. Producción", "Dir. Comercial"},
+          "Los responsables salen de la matriz de Pablo, no de una lista escrita "
+          "aquí")
+_gob_ok = _CASO.gobernar({"campo": "fecha_entrega", "etiqueta": "Fecha de entrega"})
+comprobar(_gob_ok["acuerdo"] is True and not _gob_ok["requiere"],
+          "Donde los dos módulos sí coinciden —la fecha de entrega— la fase se "
+          "cierra sin peros: el sistema no declara dudas de adorno")
+comprobar(_CASO.gobernar({"campo": "inventado_xyz"})["disponible"] is False,
+          "Un campo del que nadie ha declarado el ámbito no se adivina: se dice "
+          "que falta el mapa")
+
+_dec_sin = _CASO.decidir(_gob, None, None, pedido="42805")
+comprobar(_dec_sin["disponible"] is False and "42805" in _dec_sin["requiere"],
+          "Sin la exportación de Mencía la fase no se inventa: queda pendiente y "
+          "nombra el pedido que hace falta")
+
+if _RUTA_PED.is_file():
+    _datos_ped = _CON.interpretar(json_mod.dumps(_BASE))[0]
+    _dec = _CASO.decidir(_gob, None, _datos_ped, pedido="42805")
+    comprobar(_dec["disponible"] and len(_dec["veredictos"]) == 1,
+              "Con la exportación delante se cruza quién validó contra la matriz "
+              "de autoridad")
+    _v = _dec["veredictos"][0]
+    comprobar(_v["concluyente"] is False
+              and {p["podia"] for p in _v["por_lectura"]} == {True, False},
+              "Y ahí está el hallazgo del hilo: la MISMA validación sale válida "
+              "bajo una lectura del campo e inválida bajo la otra. No es una duda "
+              "sobre Mencía — es que la pregunta no se puede cerrar hasta que "
+              "Pablo escriba de qué área es este campo",
+              str([(p["categoria"], p["podia"]) for p in _v["por_lectura"]]))
+    comprobar(bool(_dec["requiere"]),
+              "…y el sistema dice qué haría falta para cerrarla, en vez de "
+              "elegir la lectura que más le convenga")
+
+    _comp = _CASO.comprobar(_obs, _gob, _dec)
+    comprobar(_comp["completo"] is False and _comp["recorrido"] < _comp["total"],
+              "Hoy el recorrido NO se completa, y el sistema lo calcula en vez de "
+              "afirmarlo: un guion que dijera tener datos que no están sería el "
+              "primer error que este bloque le reprocha a los demás")
+    comprobar([f["fase"] for f in _comp["fases"]]
+              == ["OBSERVAR", "GOBERNAR", "DECIDIR", "COMPROBAR"],
+              "Las cuatro fases son las del flujo que dibujó el equipo")
+    comprobar([f["responsable"] for f in _comp["fases"]]
+              == ["Juan Salas", "Pablo Morillas", "Mencía Viñuelas", "Íñigo Daza"],
+              "…y cada una tiene un dueño distinto: el caso cruza cuatro trabajos")
+    comprobar(all(f["requiere"] for f in _comp["pendientes"]),
+              "Ninguna fase se queda a medias en silencio: todas dicen qué les "
+              "falta")
+
+comprobar("evidencia" in _CASO.REGLA and "autoridad" in _CASO.REGLA
+          and "evaluación" in _CASO.REGLA,
+          "La regla del recorrido nombra las tres cosas, y la tercera es este "
+          "bloque")
+
+# --- Y ahora lo mismo, pero partiendo de dos PDF de verdad -----------------
+# Todo lo de arriba parte de diccionarios escritos aquí. Esto arranca donde
+# arranca el usuario —dos ficheros— y recorre clasificación, lectura, extracción
+# y las cuatro fases. Si algún día se rompe la lectura de la orden, el recorrido
+# se quedaría sin discrepancia y esta comprobación es la que lo dice.
+_EJEMPLO = guion.documentos_de("ejemplo")
+if _EJEMPLO:
+    from nucleo import clasificacion as _CL
+    _docs_ej, _ = _CL.anotar_tipos(_EJEMPLO, A.clasificar,
+                                   A.TIPOS, "determinista", permiso=None)
+    _tipos_ej = {_CL.tipo_de(d, A.clasificar) for d in _docs_ej}
+    comprobar(_tipos_ej == {"orden", "pedido_cliente"},
+              "Los dos documentos de ejemplo se identifican por su contenido: "
+              "una orden de fabricación y un pedido de cliente",
+              str(sorted(_tipos_ej)))
+
+    _esp_ej, _ctx_ej = A.verdad_de_campo(_docs_ej, "determinista")
+    _cant = next((e for e in _esp_ej if e["campo"] == "cantidad"), None)
+    comprobar(_cant is not None
+              and str(_cant["valor_cliente"]) == "3000"
+              and str(_cant["valor_orden"]) == "30000",
+              "La discrepancia sale de leer los PDF, no de un diccionario "
+              "escrito a mano: 3.000 pedidos contra 30.000 en la orden",
+              str(_cant))
+    comprobar(_CASO.numero_de_pedido(_ctx_ej) is None,
+              "Y cuando el nombre del documento no lleva número de pedido, no se "
+              "inventa uno: pedirle a Mencía «la exportación del pedido "
+              "EJEMPLO_orden_de_fabricacion» sería una petición inatendible")
+    comprobar(_CASO.numero_de_pedido({"pedido": "of42805"}) == "42805",
+              "…y cuando sí lo lleva, lo saca: `of42805` → 42805")
+
+    _obs_ej = _CASO.observar(_esp_ej,
+                             A.interpretar(A.EJEMPLO)[0])
+    comprobar(_obs_ej["principal"]["campo"] == "cantidad"
+              and not _obs_ej["inventadas"],
+              "Contrastada con la respuesta real del módulo de Juan, la "
+              "discrepancia que conduce el caso es la cantidad")
+
+print("\n36 · Los cuatro estados se ven distintos")
+# El color de esta aplicación es información, así que se comprueba como
+# información. Lo que se fija aquí no es el tono exacto —eso puede afinarse—
+# sino las tres reglas de las que depende que la pantalla cuente lo mismo que
+# el informe.
+import ui as _UI
+
+comprobar(len({_UI.TONO_CASO[k][0] for k in
+               ("pasa", "no_pasa", "pendiente", "no_aplica")}) == 4,
+          "Los cuatro desenlaces tienen cuatro tratamientos distintos: "
+          "«pendiente» y «no aplica» dejan de verse igual, y son cosas muy "
+          "distintas")
+comprobar(_UI.TONO_CASO["pendiente"][0] != _UI.TONO_CASO["no_aplica"][0]
+          and "--espera:#3c5a80" in _UI.ESTILO,
+          "«Pendiente» va en azul, no en ámbar: no es un suspenso a medias, es "
+          "una pregunta abierta, y el ámbar diría lo contrario")
+comprobar(all(len(v) >= 2 and v[1] for v in _UI.TONO_CASO.values()),
+          "Ningún estado viaja sólo con color: los cuatro llevan glifo, y la "
+          "pastilla añade la palabra")
+comprobar("--mal:#b8302f" in _UI.ESTILO and "--mal-marca:#e34948" in _UI.ESTILO,
+          "Hay un rojo para escribir (4.5:1 sobre su fondo) y otro para pintar "
+          "(el que se separa del verde para un protanope). Mezclarlos rompe uno "
+          "de los dos")
+
+_pasos_ui = []
+_orig_md = _UI.st.markdown
+_UI.st.markdown = lambda cuerpo, **kw: _pasos_ui.append(cuerpo)
+try:
+    _UI.linea_del_hilo(_CASO.comprobar(_obs, _gob, _dec_sin)["fases"],
+                       _CASO.REGLA)
+finally:
+    _UI.st.markdown = _orig_md
+_marcado = "".join(_pasos_ui)
+comprobar(_marcado.count('class="hilo-paso') == 4,
+          "La línea del hilo dibuja un tramo por paso")
+comprobar("hilo-paso--corte" in _marcado,
+          "…y la espina se vuelve discontinua donde el hilo se corta. Una línea "
+          "pintada entera afirmaría que el recorrido está completo, y no lo está")
+comprobar(_marcado.index("hilo-paso--corte")
+          > _marcado.index('hilo-paso--ejecutable'),
+          "El corte no está al principio: los primeros pasos sí se recorren")
 
 # ---------------------------------------------------------------------------
 print("\n" + ("Todo correcto." if not fallos

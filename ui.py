@@ -12,6 +12,7 @@ acompaña, nunca carga solo con el significado.
 """
 
 import html
+import re
 
 import pandas as pd
 import streamlit as st
@@ -23,7 +24,7 @@ import streamlit as st
 # viejo también tenía todas las funciones por nombre, la comprobación dio el
 # visto bueno. Lo que había cambiado era la **firma** de una de ellas, no su
 # existencia. Un número por fichero detecta lo que un `hasattr` no ve.
-VERSION_UI = 12
+VERSION_UI = 13
 
 from nucleo import bateria as B  # noqa: F401  (lo usa app.py)
 from nucleo import asesor as AS
@@ -40,13 +41,44 @@ from nucleo import veredicto as V
 
 ESTILO = """
 <style>
+/* Los cuatro estados y por qué son estos colores
+   ----------------------------------------------
+   · superado   verde oscuro #006300
+   · fallido    rojo claro   #e34948
+   · pendiente  azul pizarra #3c5a80
+   · no aplica  gris apagado #898781
+
+   Dos decisiones que no son de gusto:
+
+   1) Pendiente NO es ámbar. El ámbar significa «esto va casi mal», y en este
+      sistema un pendiente no es un suspenso a medias: es una pregunta abierta
+      que dice qué le falta para cerrarse. Pintarlo de ámbar contaría en
+      pantalla lo contrario de lo que dice el informe. Va en azul —información—
+      y «no aplica» va en gris apagado, porque que no llame la atención es
+      justamente la información.
+
+   2) El verde es oscuro y el rojo es claro a propósito. La pareja habitual
+      (#0ca30c contra #d03b3b) tiene una separación de ΔE 4.1 para un
+      deuteranope: una de cada doce personas ve el mismo color en «superado» y
+      en «fallido». Separándolos también por claridad sube a 7.8 y se distinguen
+      incluso en blanco y negro. Aun así 7.8 sigue exigiendo que el color no
+      viaje solo: por eso cada pastilla lleva su glifo y su palabra.
+
+   Por eso hay dos rojos y dos grises, y no es un descuido. Un color de MARCA
+   —el relleno de una barra, un borde de 4px, un arco— sólo tiene que separarse
+   del fondo (3:1) y de sus vecinos; ahí manda la legibilidad para daltónicos y
+   gana el rojo claro. Un color de TEXTO tiene que llegar a 4.5:1 sobre su
+   propio fondo pálido, y ahí el rojo claro se queda corto. `--mal` es el de
+   escribir, `--mal-marca` el de pintar. Mezclarlos rompe uno de los dos. */
 :root{
   --superficie:#fcfcfb; --plano:#f4f4f1; --tinta:#0b0b0b; --tinta-2:#52514e;
   --tinta-3:#898781; --linea:#e1e0d9; --borde:rgba(11,11,11,.10);
   --acento:#2a78d6; --acento-suave:#eaf2fd;
-  --bien:#006300; --bien-marca:#0ca30c; --bien-fondo:#e8f5e8;
-  --mal:#d03b3b; --mal-fondo:#fceceb;
-  --espera:#52514e; --espera-fondo:#f0efec;
+  --bien:#006300; --bien-marca:#006300; --bien-fondo:#e8f5e8;
+  --mal:#b8302f; --mal-marca:#e34948; --mal-fondo:#fceceb;
+  --espera:#3c5a80; --espera-marca:#3c5a80; --espera-fondo:#eef2f7;
+  --espera-borde:#ccd8e6;
+  --nulo:#6f6d68; --nulo-marca:#d8d6d0; --nulo-fondo:#fbfbfa;
 }
 
 .stApp { background: var(--superficie); }
@@ -141,9 +173,15 @@ h1 { font-weight: 650 !important; }
 .pastilla .punto{ font-size:.62rem; line-height:1; }
 .p-bien{ background:var(--bien-fondo); color:var(--bien); border-color:#bfe0bf; }
 .p-mal{ background:var(--mal-fondo); color:var(--mal); border-color:#f2c9c7; }
-.p-espera{ background:var(--espera-fondo); color:var(--espera); }
+.p-espera{ background:var(--espera-fondo); color:var(--espera);
+           border-color:var(--espera-borde); }
 .p-acento{ background:var(--acento-suave); color:#1c5cab; border-color:#c6ddf8; }
 .p-neutro{ background:var(--plano); color:var(--tinta-2); }
+/* «No aplica» y «no valorable» son lo único que debe verse APAGADO a
+   propósito: borde discontinuo y tinta baja, para que el ojo pase de largo.
+   `p-neutro` sigue siendo la pastilla informativa de toda la vida. */
+.p-nulo{ background:var(--nulo-fondo); color:var(--nulo);
+         border-style:dashed; border-color:var(--nulo-marca); }
 
 /* --- Tarjetas de módulo ------------------------------------------------- */
 div[data-testid="stVerticalBlockBorderWrapper"]{
@@ -181,9 +219,9 @@ div.stButton > button:disabled{ color:var(--tinta-3); }
        border:1px solid var(--borde); border-left-width:4px; border-radius:10px;
        background:#fff; margin-bottom:.45rem; }
 .caso--pasa{ border-left-color:var(--bien-marca); }
-.caso--no_pasa{ border-left-color:var(--mal); }
-.caso--pendiente{ border-left-color:var(--tinta-3); }
-.caso--no_aplica{ border-left-color:var(--linea); background:#fbfbfa; }
+.caso--no_pasa{ border-left-color:var(--mal-marca); }
+.caso--pendiente{ border-left-color:var(--espera); }
+.caso--no_aplica{ border-left-color:var(--linea); background:var(--nulo-fondo); }
 .caso .requiere{ color:var(--tinta-3); font-size:.8rem; margin-top:.3rem;
                  font-style:italic; }
 .caso .n{ font-variant-numeric:tabular-nums; color:var(--tinta-3); font-weight:650;
@@ -198,8 +236,104 @@ div.stButton > button:disabled{ color:var(--tinta-3); }
 .nota{ background:var(--plano); border-left:3px solid var(--tinta-3);
        padding:.6rem .85rem; border-radius:0 8px 8px 0; color:var(--tinta-2);
        font-size:.87rem; line-height:1.5; margin:.4rem 0 .9rem 0; }
+.nota--espera{ background:var(--espera-fondo); border-left-color:var(--espera-marca);
+               color:var(--espera); }
+.nota--espera b{ font-weight:680; }
 .nota--acento{ background:var(--acento-suave); border-left-color:var(--acento);
                color:#1c5cab; }
+
+/* --- La línea del hilo --------------------------------------------------- */
+/* La espina vertical no se rellena al hacer scroll, se rellena con los DATOS:
+   el tramo sólido llega hasta donde llega el hilo de verdad y a partir de ahí
+   la línea se vuelve discontinua. En el componente del que viene esta forma el
+   degradado es decoración que reacciona al ratón; aquí, si la línea se pintara
+   entera, estaría afirmando que el recorrido está completo. */
+.hilo{ position:relative; margin:.6rem 0 1rem 0; padding:0; list-style:none; }
+.hilo-paso{ position:relative; padding:0 0 1.5rem 3.1rem; }
+.hilo-paso:last-child{ padding-bottom:.2rem; }
+/* El tramo que SALE de cada paso. Sólido mientras el hilo se puede recorrer;
+   discontinuo desde el paso que se queda a medias hacia abajo. Un tramo por
+   paso —en vez de una sola barra con un porcentaje— hace que el corte caiga
+   exactamente donde está, sin depender de lo alto que sea cada bloque. */
+.hilo-paso::before{
+  content:""; position:absolute; left:13px; top:26px; bottom:-2px; width:2px;
+  background:var(--tinta-3);
+}
+.hilo-paso:last-child::before{ display:none; }
+.hilo-paso--corte::before{
+  background:repeating-linear-gradient(to bottom, var(--espera-borde) 0 5px,
+             transparent 5px 10px);
+}
+.hilo-punto{
+  position:absolute; left:6px; top:11px; width:16px; height:16px;
+  border-radius:50%; background:var(--superficie); border:2px solid var(--tinta-3);
+  box-shadow:0 0 0 4px var(--superficie); z-index:1;
+}
+.hilo-paso--ejecutable .hilo-punto{ background:var(--tinta); border-color:var(--tinta); }
+.hilo-paso--parcial .hilo-punto{
+  border-color:var(--espera-marca); border-style:dashed; background:var(--superficie);
+}
+.hilo-fase{
+  font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+  color:var(--tinta-3); line-height:1;
+}
+.hilo-tit{ font-size:1.12rem; font-weight:650; letter-spacing:-.01em;
+           margin:.3rem 0 .12rem 0; }
+.hilo-quien{ font-size:.8rem; color:var(--tinta-3); margin-bottom:.55rem; }
+.hilo-cuerpo p{ font-size:.9rem; color:var(--tinta-2); line-height:1.6;
+                margin:0 0 .5rem 0; }
+.hilo-cuerpo p b{ color:var(--tinta); font-weight:640; }
+.hilo-falta{
+  background:var(--espera-fondo); border:1px solid var(--espera-borde);
+  border-left:3px solid var(--espera-marca); border-radius:0 8px 8px 0;
+  padding:.55rem .8rem; font-size:.85rem; color:var(--espera); line-height:1.55;
+  margin-top:.55rem;
+}
+.hilo-falta b{ font-weight:680; }
+@media (min-width:900px){
+  .hilo-paso{ display:grid; grid-template-columns:150px 1fr; column-gap:1.6rem; }
+  .hilo-fase{ font-size:.95rem; letter-spacing:.1em; padding-top:.55rem;
+              text-align:right; }
+  .hilo-cuerpo{ min-width:0; }
+}
+.hilo-regla{
+  border-top:1px solid var(--linea); margin-top:1.2rem; padding-top:1rem;
+  font-size:1.02rem; font-weight:620; color:var(--tinta); line-height:1.5;
+}
+.hilo-regla span{ display:block; font-size:.8rem; font-weight:500;
+                  color:var(--tinta-3); margin-top:.3rem; }
+
+/* --- Cabecera de fase (la pantalla del caso) ----------------------------- */
+.fase{
+  display:flex; align-items:flex-start; gap:.9rem; margin:1.9rem 0 .5rem 0;
+  padding-top:1.1rem; border-top:1px solid var(--linea);
+}
+.fase-n{
+  flex:none; width:30px; height:30px; border-radius:50%; display:flex;
+  align-items:center; justify-content:center; font-size:.86rem; font-weight:700;
+  background:var(--tinta); color:#fff; font-variant-numeric:tabular-nums;
+}
+.fase--pendiente .fase-n{ background:var(--superficie); color:var(--espera);
+  border:2px dashed var(--espera-marca); }
+.fase--parcial .fase-n{ background:var(--espera); color:#fff; }
+.fase-txt{ flex:1; min-width:0; }
+.fase-nombre{ font-size:.72rem; font-weight:700; letter-spacing:.14em;
+              text-transform:uppercase; color:var(--tinta-3); }
+.fase-tit{ font-size:1.22rem; font-weight:650; letter-spacing:-.015em;
+           margin:.12rem 0 .1rem 0; }
+.fase-quien{ font-size:.82rem; color:var(--tinta-3); }
+
+/* Las dos lecturas de un mismo campo, enfrentadas */
+.lecturas{ display:flex; gap:.7rem; flex-wrap:wrap; margin:.3rem 0 .6rem 0; }
+.lectura{
+  flex:1 1 260px; background:#fff; border:1px solid var(--borde);
+  border-left:3px solid var(--espera-marca); border-radius:0 10px 10px 0;
+  padding:.65rem .8rem;
+}
+.lectura .l-a{ font-size:.72rem; font-weight:700; letter-spacing:.06em;
+               text-transform:uppercase; color:var(--tinta-3); }
+.lectura .l-m{ font-size:.95rem; font-weight:650; margin:.15rem 0 .25rem 0; }
+.lectura .l-p{ font-size:.81rem; color:var(--tinta-2); line-height:1.5; }
 
 /* --- Esquema ------------------------------------------------------------ */
 .esquema{ width:100%; background:#fff; border:1px solid var(--borde);
@@ -210,7 +344,7 @@ div.stButton > button:disabled{ color:var(--tinta-3); }
 TONO_CASO = {"pasa": ("p-bien", "✓", "Superado"),
              "no_pasa": ("p-mal", "✕", "Fallido"),
              "pendiente": ("p-espera", "◌", "Pendiente"),
-             "no_aplica": ("p-neutro", "–", "No aplica")}
+             "no_aplica": ("p-nulo", "–", "No aplica")}
 
 TONO_CONEXION = {"probada": ("p-bien", "●"),
                  "documentada": ("p-acento", "●"),
@@ -219,7 +353,7 @@ TONO_CONEXION = {"probada": ("p-bien", "●"),
 TONO_CRITERIO = {"cumple": ("p-bien", "✔", "Cumple"),
                  "no_cumple": ("p-mal", "✖", "No cumple"),
                  "discrepancia": ("p-espera", "≠", "Discrepancia"),
-                 "no_valorable": ("p-neutro", "○", "No valorable")}
+                 "no_valorable": ("p-nulo", "○", "No valorable")}
 
 
 def inyectar_estilo():
@@ -235,9 +369,19 @@ def pastilla(texto, clase="p-neutro", glifo="●"):
             f'{_e(texto)}</span>')
 
 
-def nota(texto, acento=False):
-    st.markdown(f'<div class="nota{" nota--acento" if acento else ""}">{texto}</div>',
-                unsafe_allow_html=True)
+def nota(texto, acento=False, tono=None):
+    """
+    Un aviso. `tono="espera"` para lo que está **pendiente**.
+
+    Existe porque `st.warning` pinta en ámbar y `st.error` en rojo, y en este
+    sistema casi nada de lo que queda abierto es un aviso ni un fallo: es una
+    pregunta que sigue sin respuesta. Usar los colores de Streamlit para eso
+    contaría en pantalla justo lo contrario de lo que dice el informe —que un
+    pendiente no es un suspenso a medias— y la pantalla siempre gana.
+    """
+    clase = ("nota nota--espera" if tono == "espera"
+             else "nota nota--acento" if acento else "nota")
+    st.markdown(f'<div class="{clase}">{texto}</div>', unsafe_allow_html=True)
 
 
 def kpi(etiqueta, valor, nota_pie="", acento=False):
@@ -265,8 +409,11 @@ def medidor(etiqueta, porcentaje, pie="", color=None, sufijo="%"):
     vacio = porcentaje is None
     p = 0 if vacio else max(0.0, min(100.0, float(porcentaje)))
     if color is None:
-        color = ("#0ca30c" if p >= 90 else "#2a78d6" if p >= 70
-                 else "#d9822b" if p >= 50 else "#d03b3b")
+        # Colores de marca (el arco es un trazo grueso, no texto). Mismos cuatro
+        # tonos que la barra de la batería para que un 55 % no se vea de un color
+        # aquí y de otro tres centímetros más abajo.
+        color = ("#006300" if p >= 90 else "#2a78d6" if p >= 70
+                 else "#ec835a" if p >= 50 else "#e34948")
     # 270° de recorrido, empezando abajo-izquierda: el hueco de abajo evita que
     # el arco parezca un anillo cerrado y ya completo.
     largo = 2 * 3.14159265 * r * 0.75
@@ -305,10 +452,15 @@ def barra_bateria(r):
     fundir en un «porcentaje de éxito». Por eso los cuatro tramos van con su
     número dentro, su palabra en la leyenda y las dos tasas explicadas debajo.
     """
-    tramos = [("pasa", "Superados", "#0ca30c"),
-              ("no_pasa", "Fallidos", "#d03b3b"),
-              ("pendiente", "Pendientes", "#8a8880"),
-              ("no_aplica", "No aplicables", "#cfcdc6")]
+    # Colores de MARCA, no de texto (ver la cabecera de ESTILO). El número que
+    # va dentro del tramo se repite en la leyenda, así que ningún dato depende
+    # de leerlo ahí; aun así los dos tramos claros llevan tinta oscura para que
+    # se lea, y los dos oscuros la llevan blanca.
+    tramos = [("pasa", "Superados", "#006300"),
+              ("no_pasa", "Fallidos", "#e34948"),
+              ("pendiente", "Pendientes", "#3c5a80"),
+              ("no_aplica", "No aplicables", "#d8d6d0")]
+    TINTA_OSCURA = {"no_pasa", "no_aplica"}
     total = max(1, r["total"])
 
     segmentos = ""
@@ -319,7 +471,7 @@ def barra_bateria(r):
         ancho = 100 * n / total
         segmentos += (f'<div class="seg" style="flex:0 0 {ancho:.2f}%;'
                       f'background:{color};'
-                      f'{"color:#4a4843;" if clave == "no_aplica" else ""}">'
+                      f'{"color:#0b0b0b;" if clave in TINTA_OSCURA else ""}">'
                       f'<span>{n}</span></div>')
 
     leyenda = "".join(
@@ -336,6 +488,121 @@ def barra_bateria(r):
     st.markdown(f'<div class="barra-envoltura"><div class="barra">{segmentos}</div>'
                 f'<div class="leyenda">{leyenda}</div>'
                 f'<div class="barra-pie">{pie}</div></div>',
+                unsafe_allow_html=True)
+
+
+_NEGRITA = re.compile(r"\*\*(.+?)\*\*", re.S)
+
+
+def _texto(t):
+    """Escapa el texto y respeta sólo las negritas: el resto es literal."""
+    return _NEGRITA.sub(r"<b>\1</b>", _e(t or ""))
+
+
+def linea_del_hilo(pasos, regla=None):
+    """
+    Las fases del hilo en una sola espina vertical.
+
+    Por qué así y no con una tarjeta por paso
+    ------------------------------------------
+    Cuatro tarjetas sueltas cuentan cuatro cosas. Lo que hay que enseñar es que
+    son **un solo recorrido**, y eso lo dice la línea que las une, no el texto de
+    dentro. La forma viene de los `timeline` al uso; lo que cambia es qué
+    significa la línea: en el original se rellena al hacer scroll —es decoración
+    que reacciona al ratón— y aquí se rellena con los datos. El tramo sólido
+    llega hasta donde llega el hilo de verdad y se vuelve discontinuo en el paso
+    que se queda a medias.
+
+    Ese detalle no es estético. Una línea pintada entera afirmaría que el
+    recorrido está completo, y hoy no lo está: falta la exportación de Mencía
+    para este pedido. La pantalla tiene que decir lo mismo que el informe.
+
+    Los colores tampoco decoran. El punto de una fase completa es tinta sólida;
+    el de la fase que se corta es el azul de «pendiente», hueco y con el borde
+    discontinuo — el mismo azul que ese estado tiene en toda la aplicación,
+    porque es el mismo estado.
+
+    Los campos de texto son opcionales a propósito. Esta misma línea sirve para
+    el recorrido que se acaba de ejecutar —donde el estado de cada fase lo
+    calcula `demo/caso.py` y no hay relato que contar— y para cualquier guion que
+    quiera acompañarla con explicaciones.
+    """
+    INCOMPLETAS = {"parcial", "pendiente"}
+    trozos = []
+    for i, paso in enumerate(pasos):
+        estado = paso.get("estado", "ejecutada")
+        # El tramo que sale de esta fase se rompe si ésta no se completa, o si ya
+        # venía roto de más arriba: el corte se hereda hacia abajo.
+        roto = any(p.get("estado") in INCOMPLETAS for p in pasos[:i + 1])
+        clases = (f"hilo-paso hilo-paso--"
+                  f"{'parcial' if estado in INCOMPLETAS else 'ejecutable'}"
+                  + (" hilo-paso--corte" if roto else ""))
+
+        falta = ""
+        if paso.get("requiere"):
+            encabezado = ("Esta fase no se ha podido ejecutar."
+                          if estado == "pendiente" else
+                          "Esta fase está a medias." if estado == "parcial" else
+                          "Funciona, pero queda algo abierto.")
+            falta = (f'<div class="hilo-falta"><b>{encabezado}</b> '
+                     f'Falta {_texto(paso["requiere"])}.</div>')
+
+        cuerpo = ""
+        for etiqueta, clave in (("", "que_pasa"),
+                                ("Quién lo dice.", "quien_lo_dice"),
+                                ("Qué hace el evaluador.", "que_hace_el_evaluador")):
+            if paso.get(clave):
+                marca = f"<b>{etiqueta}</b> " if etiqueta else ""
+                cuerpo += f'<p>{marca}{_texto(paso[clave])}</p>'
+
+        numero = (f'{_e(paso["n"])} · ' if paso.get("n") else f'{i + 1} · ')
+        trozos.append(
+            f'<li class="{clases}"><span class="hilo-punto"></span>'
+            f'<div class="hilo-fase">{_e(paso["fase"])}</div>'
+            f'<div class="hilo-cuerpo">'
+            + (f'<div class="hilo-tit">{_e(paso["titulo"])}</div>'
+               if paso.get("titulo") else "")
+            + f'<div class="hilo-quien">{numero}'
+              f'{_e(paso.get("responsable", ""))}</div>'
+            + cuerpo + falta + '</div></li>')
+
+    pie = ""
+    if regla:
+        pie = (f'<div class="hilo-regla">«{_e(regla)}»'
+               f'<span>La regla del flujo que dibujó el equipo. Las tres palabras '
+               f'son tres módulos distintos, y la última es este bloque.</span></div>')
+
+    st.markdown(f'<ol class="hilo">{"".join(trozos)}</ol>{pie}',
+                unsafe_allow_html=True)
+
+
+def cabecera_fase(n, fase, titulo, responsable, estado="ejecutada"):
+    """El encabezado de una fase dentro de la pantalla del caso."""
+    st.markdown(
+        f'<div class="fase fase--{_e(estado)}"><div class="fase-n">{_e(n)}</div>'
+        f'<div class="fase-txt"><div class="fase-nombre">{_e(fase)}</div>'
+        f'<div class="fase-tit">{_e(titulo)}</div>'
+        f'<div class="fase-quien">{_e(responsable)}</div></div></div>',
+        unsafe_allow_html=True)
+
+
+def lecturas_de_campo(lecturas):
+    """
+    Las lecturas posibles de un mismo campo, una al lado de otra.
+
+    Se enseñan las dos en vez de elegir una porque el desacuerdo **es** el
+    hallazgo: si el evaluador escogiera en silencio, convertiría una suposición
+    suya en un veredicto sobre el trabajo de otro.
+    """
+    trozos = []
+    for l in lecturas:
+        manda = ", ".join(l["manda"]) or "nadie declarado"
+        trozos.append(
+            f'<div class="lectura"><div class="l-a">Si «{_e(l["categoria"])}» '
+            f'· {_e(l["area"] or "área sin declarar")}</div>'
+            f'<div class="l-m">Manda {_e(manda)}</div>'
+            f'<div class="l-p">{_texto(l["por_que"])}</div></div>')
+    st.markdown(f'<div class="lecturas">{"".join(trozos)}</div>',
                 unsafe_allow_html=True)
 
 
@@ -486,12 +753,12 @@ def panel_ia():
                   f'<code>{_e(est["modelo"])}</code><br>'
                   f'{est["llamadas"]} llamada(s) · {est["cache"]} de caché'
                   + (f' · {est["esperas"]} espera(s)' if est.get("esperas") else "")
-                  + (f' · <span style="color:#d03b3b">{est["errores"]} error(es)'
+                  + (f' · <span style="color:var(--mal)">{est["errores"]} error(es)'
                      f'</span>' if est["errores"] else "")
                   + f'<br><span style="color:#898781">límite gratuito: '
                     f'{llm.LIMITE_POR_MINUTO}/min</span>')
         if est.get("aviso_modelo"):
-            cuerpo += (f'<br><span style="color:#d03b3b">modelo sustituido — '
+            cuerpo += (f'<br><span style="color:var(--mal)">modelo sustituido — '
                        f'anclado: <code>{_e(est["modelo_anclado"])}</code></span>')
     else:
         cuerpo = '<b>IA no conectada</b><br>evaluación en modo determinista'

@@ -22,4 +22,4 @@ Lo comparable no son los módulos, es el veredicto.
 
 # Versión del paquete completo. La interfaz la comprueba al arrancar para avisar
 # si algún fichero se ha quedado descompasado al subirlo a GitHub.
-VERSION = 12
+VERSION = 13

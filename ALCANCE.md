@@ -591,8 +591,9 @@ Sale calculada del propio sistema: cada caso no ejercitado declara qué haría f
 ## 10 · Estado de comprobación
 
 ```
-python pruebas.py                →  518 comprobaciones en verde
+python pruebas.py                →  540 comprobaciones en verde
 python prueba_generalizacion.py  →   38 comprobaciones en verde
+python prueba_linea_hilo.py      →   genera la página y la deja mirable
 ```
 
 No prueba los módulos de los compañeros: prueba el evaluador. Comprueba que la
